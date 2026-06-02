@@ -1,962 +1,1572 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geojornada: Em Busca do Equilíbrio (5º Ano)</title>
-    
-    <!-- Tailwind CSS -->
+    <title>Jornada Histórica: O Escape Room da Antiguidade</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
-    <!-- SweetAlert2 para modais e feedbacks (substitui o alert) -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <!-- FontAwesome para ícones -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
-
+        :root {
+            --color-bg: #110a05;
+            --color-stone: #2c241b;
+            --color-gold: #d4af37;
+            --color-clay: #b87333;
+        }
         body {
-            font-family: 'Nunito', sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-            padding: 10px;
-            color: #333;
-        }
-
-        .game-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 900px;
-            min-height: 600px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .btn {
-            transition: all 0.2s ease;
-            transform: scale(1);
-        }
-        .btn:hover:not(:disabled) {
-            transform: scale(1.02);
-            filter: brightness(1.1);
-        }
-        .btn:active:not(:disabled) {
-            transform: scale(0.98);
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Animações e transições de fase */
-        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- Estilos da Fase: Balança --- */
-        .scale-structure {
-            position: relative;
-            width: 300px;
-            height: 20px;
-            background: #8B4513;
-            margin: 0 auto;
-            border-radius: 10px;
-            transition: transform 0.5s cubic-bezier(0.4, 2, 0.2, 1);
-        }
-        .scale-base {
-            width: 40px;
-            height: 150px;
-            background: #5C4033;
-            margin: 0 auto;
-            border-radius: 5px 5px 0 0;
-            position: relative;
-            z-index: -1;
-        }
-        .scale-pan-container {
-            position: absolute;
-            top: 10px;
-            width: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .pan-left { left: -40px; }
-        .pan-right { right: -40px; }
-        .rope {
-            width: 2px;
-            height: 60px;
-            background: #666;
-        }
-        .pan {
-            width: 120px;
-            height: 20px;
-            background: #cd853f;
-            border-radius: 0 0 50px 50px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            padding-bottom: 5px;
-            gap: 2px;
-            flex-wrap: wrap;
-        }
-        .draggable-coin {
-            width: 30px;
-            height: 30px;
-            background: radial-gradient(circle, #FFD700, #DAA520);
-            border-radius: 50%;
-            border: 2px solid #B8860B;
-            cursor: grab;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 1px 1px 0 #8B4513;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .draggable-coin:active { cursor: grabbing; }
-
-        /* --- Estilos da Fase: Tabuleiro --- */
-        .board-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 5px;
-            background: #fff;
-            padding: 10px;
-            border-radius: 10px;
-            border: 4px solid #3b82f6;
-        }
-        .board-cell {
-            aspect-ratio: 1;
-            background: #e0f2fe;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: #0284c7;
-            position: relative;
-            border: 2px solid #bae6fd;
-        }
-        .board-cell.start { background: #bbf7d0; border-color: #4ade80; color: #166534; }
-        .board-cell.end { background: #fecaca; border-color: #f87171; color: #991b1b; }
-        .player-token {
-            position: absolute;
-            font-size: 2rem;
-            transition: all 0.4s ease;
-            z-index: 10;
-        }
-
-        /* --- Estilos Drag & Drop Genéricos --- */
-        .drop-zone {
-            min-height: 60px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            background: #f8fafc;
-            transition: background 0.2s;
-        }
-        .drop-zone.dragover { background: #e2e8f0; border-color: #94a3b8; }
-        .draggable-item {
-            cursor: grab;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--color-bg);
+            color: #fdf5e6;
+            overflow-x: hidden;
+            background-image: url('data:image/svg+xml;utf8,<svg opacity="0.03" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23fff"/><path d="M0 0l100 100M100 0L0 100" stroke="%23000" stroke-width="1"/></svg>');
             user-select: none;
         }
-        .draggable-item:active { cursor: grabbing; }
+        .font-ancient { font-family: 'Cinzel', serif; }
         
-        /* Options de Quiz */
-        .quiz-option {
-            border: 2px solid #e2e8f0;
+        /* Utilitários Visuais Compartilhados */
+        .panel-stone {
+            background: linear-gradient(145deg, #2a221a, #1e1812);
+            border: 2px solid #3d3224;
+            box-shadow: 8px 8px 16px #070402, -8px -8px 16px #1b1008;
+            border-radius: 1.5rem;
+        }
+        .btn-gold {
+            background: linear-gradient(145deg, #c49c2f, #a68428);
+            color: #110a05;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
             transition: all 0.2s;
         }
-        .quiz-option:hover { border-color: #3b82f6; background-color: #eff6ff; }
-        .quiz-option.selected { border-color: #3b82f6; background-color: #bfdbfe; font-weight: bold; }
-        .quiz-option.correct { border-color: #22c55e; background-color: #dcfce7; color: #166534; }
-        .quiz-option.wrong { border-color: #ef4444; background-color: #fee2e2; color: #991b1b; }
+        .btn-gold:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .btn-gold:active { transform: translateY(1px); }
+        
+        /* Efeitos Específicos das Fases */
+        .flashlight-mask {
+            clip-path: circle(12% at var(--mouse-x, 50%) var(--mouse-y, 50%));
+            transition: clip-path 0.05s linear;
+        }
+        .card-memory { perspective: 1000px; cursor: pointer; }
+        .card-inner { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
+        .card-memory.flipped .card-inner { transform: rotateY(180deg); }
+        .card-face { backface-visibility: hidden; position: absolute; inset: 0; }
+        .card-back { transform: rotateY(180deg); }
+        
+        .shake-animation { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
 
+        .pulse-glow { animation: pulseGlow 2s infinite; }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+        
+        /* Toast Notifications */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { animation: slideIn 0.3s ease-out forwards, fadeOut 0.3s ease-in 3.5s forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        /* Animações de Transição de Ecrã */
+        .fade-enter { opacity: 0; transform: scale(0.95) translateY(20px); }
+        .fade-enter-active { opacity: 1; transform: scale(1) translateY(0); transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
+        
+        /* Progress Bar de XP */
+        .xp-bar-container { background: rgba(0,0,0,0.5); border-radius: 999px; overflow: hidden; border: 1px solid #d4af37; height: 10px; width: 120px;}
+        .xp-bar-fill { background: linear-gradient(90deg, #d4af37, #fde08b); height: 100%; width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--color-bg); }
+        ::-webkit-scrollbar-thumb { background: #5c4731; border-radius: 4px; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-    <div class="game-card">
-        <!-- Header -->
-        <header class="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-2xl shadow-md z-10">
-            <div class="flex items-center gap-3">
-                <div class="bg-white text-blue-600 w-10 h-10 rounded-full flex justify-center items-center font-bold text-xl">
-                    <i class="fa-solid fa-earth-americas"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-xl leading-tight">Geojornada</h1>
-                    <p class="text-blue-200 text-sm" id="phase-counter">Fase 1 de 18</p>
-                </div>
+    <!-- CABEÇALHO COM SISTEMA DE XP -->
+    <header class="w-full bg-black/80 backdrop-blur-md border-b border-amber-900/50 sticky top-0 z-50 shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="Game.goToHub()">
+                <span class="text-2xl group-hover:rotate-12 transition-transform">🏺</span>
+                <h1 class="font-ancient font-bold text-xl md:text-2xl text-amber-500 tracking-wider drop-shadow-md">Jornada Histórica</h1>
             </div>
-            <div class="text-right">
-                <p class="text-sm text-blue-200 uppercase tracking-wide font-bold">Pontuação</p>
-                <p class="font-black text-2xl" id="score-display">0</p>
+            <div class="flex items-center gap-6">
+                <!-- XP System UI -->
+                <div class="hidden md:flex flex-col items-end">
+                    <p class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Nível de Sabedoria</p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-amber-200" id="xp-text">0 XP</span>
+                        <div class="xp-bar-container">
+                            <div class="xp-bar-fill" id="xp-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="Game.goToHub()" class="px-5 py-2 text-xs font-bold rounded-lg border border-amber-600 bg-amber-900/60 hover:bg-amber-700/80 hover:text-white transition-all text-amber-200 shadow-md flex items-center gap-2">
+                    <span>🧭</span> Mapa Geral
+                </button>
             </div>
-        </header>
-
-        <!-- Progress Bar -->
-        <div class="w-full bg-blue-100 h-2">
-            <div id="progress-bar" class="bg-yellow-400 h-2 transition-all duration-500" style="width: 0%;"></div>
         </div>
+    </header>
 
-        <!-- Game Area -->
-        <main id="game-area" class="flex-grow p-6 flex flex-col items-center justify-center overflow-y-auto bg-slate-50 relative">
-            <!-- Conteúdo injetado via JS -->
-        </main>
+    <main id="app-container" class="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 relative">
+        <!-- O conteúdo será injetado dinamicamente via JS aqui -->
+    </main>
 
-        <!-- Footer / Controls -->
-        <footer class="bg-white p-4 border-t border-slate-200 flex justify-end items-center rounded-b-2xl">
-            <button id="btn-next" class="btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hidden flex items-center gap-2 text-lg">
-                Continuar Jornada <i class="fa-solid fa-arrow-right"></i>
+    <!-- Container de Notificações (Toasts) -->
+    <div id="toast-container"></div>
+
+    <!-- Modal Global de Vitória com Animação de XP -->
+    <div id="victory-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="panel-stone p-8 max-w-lg w-full text-center relative border-amber-500 shadow-[0_0_80px_rgba(212,175,55,0.3)] transform scale-95 transition-transform duration-500" id="victory-panel">
+            
+            <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-gradient-to-br from-amber-300 to-amber-600 rounded-full flex items-center justify-center border-4 border-[#110a05] shadow-[0_0_30px_#d4af37] animate-bounce">
+                <span class="text-4xl" id="victory-icon">🏆</span>
+            </div>
+
+            <h2 class="font-ancient text-4xl text-gold mt-10 mb-2" id="victory-title">Fase Concluída!</h2>
+            <div class="inline-block bg-amber-950/80 px-4 py-1 rounded-full text-amber-300 font-bold text-sm mb-6 border border-amber-700" id="victory-xp">
+                +100 Pontos de Experiência
+            </div>
+            
+            <div class="bg-black/60 p-5 rounded-2xl border border-amber-900/50 mb-8 text-left relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                <p class="text-xs text-amber-500 font-bold mb-2 uppercase tracking-wide">Pergaminho do Conhecimento:</p>
+                <p class="text-sm text-amber-50 leading-relaxed font-medium" id="victory-learning"></p>
+            </div>
+            
+            <button onclick="Game.closeVictoryModal()" class="w-full btn-gold py-4 rounded-xl text-base tracking-widest uppercase flex items-center justify-center gap-3">
+                Continuar a Exploração <span>➔</span>
             </button>
-        </footer>
+        </div>
     </div>
 
     <script>
-        // --- CLASSES BASE ---
-        class Phase {
-            constructor(title, description, type) {
-                this.title = title;
-                this.description = description;
-                this.type = type; // 'interativo' ou 'avaliacao'
-            }
-            render(container) { throw new Error("render() não implementado"); }
-            cleanup() {} // Limpar eventos se necessário
-        }
-
-        // --- CLASSES DE TIPOS DE FASE ---
-
-        // 1. Fase de Múltipla Escolha Clássica (Usada para a maioria das avaliações)
-        class QuizPhase extends Phase {
-            constructor(title, description, question, options, correctIndex, contextImage = null) {
-                super(title, description, 'avaliacao');
-                this.question = question;
-                this.options = options;
-                this.correctIndex = correctIndex;
-                this.contextImage = contextImage;
-                this.answered = false;
-            }
-
-            render(container) {
-                let imgHtml = this.contextImage ? `<div class="mb-4 p-4 bg-white rounded-lg shadow"><p class="text-gray-600 text-center italic">${this.contextImage}</p></div>` : '';
-                
-                let html = `
-                    <div class="w-full max-w-2xl fade-in">
-                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold mb-3 uppercase tracking-wide"><i class="fa-solid fa-pen-clip"></i> Desafio de Avaliação</span>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${this.title}</h2>
-                        ${imgHtml}
-                        <p class="text-lg text-slate-600 mb-6">${this.question}</p>
-                        <div class="flex flex-col gap-3" id="options-container">
-                            ${this.options.map((opt, i) => `
-                                <button class="quiz-option text-left w-full p-4 rounded-xl text-slate-700 font-medium" onclick="gameManager.currentPhaseObj.selectOption(${i}, this)">
-                                    ${opt}
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                container.innerHTML = html;
-            }
-
-            selectOption(index, btnElement) {
-                if(this.answered) return;
-                this.answered = true;
-                
-                const buttons = document.querySelectorAll('.quiz-option');
-                buttons.forEach(b => b.disabled = true);
-
-                if(index === this.correctIndex) {
-                    btnElement.classList.add('correct');
-                    gameManager.addScore(100);
-                    Swal.fire({ icon: 'success', title: 'Correto!', text: 'Excelente análise!', confirmButtonColor: '#22c55e' });
-                } else {
-                    btnElement.classList.add('wrong');
-                    buttons[this.correctIndex].classList.add('correct');
-                    Swal.fire({ icon: 'error', title: 'Poxa...', text: 'Preste mais atenção aos conceitos de Geografia.', confirmButtonColor: '#3b82f6' });
-                }
-                gameManager.showNextButton();
-            }
-        }
-
-        // 2. Fase de Questão Aberta
-        class OpenTextPhase extends Phase {
-            constructor(title, question, expectedAnswer) {
-                super(title, "", 'avaliacao');
-                this.question = question;
-                this.expectedAnswer = expectedAnswer;
-            }
-
-            render(container) {
-                container.innerHTML = `
-                    <div class="w-full max-w-2xl fade-in flex flex-col h-full">
-                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold mb-3 uppercase self-start"><i class="fa-solid fa-pen-clip"></i> Desafio de Avaliação (Dissertativa)</span>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-4">${this.title}</h2>
-                        <p class="text-lg text-slate-600 mb-4">${this.question}</p>
-                        <textarea id="student-answer" class="w-full flex-grow p-4 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none resize-none min-h-[150px] text-lg" placeholder="Escreva sua resposta aqui..."></textarea>
-                        <button onclick="gameManager.currentPhaseObj.submitAnswer()" class="mt-4 bg-blue-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-blue-700 transition w-full">Enviar Resposta</button>
-                    </div>
-                `;
-            }
-
-            submitAnswer() {
-                const text = document.getElementById('student-answer').value.trim();
-                if(text.length < 10) {
-                    Swal.fire('Atenção', 'Por favor, escreva uma resposta mais detalhada.', 'warning');
-                    return;
-                }
-                
-                Swal.fire({
-                    title: 'Gabarito Esperado',
-                    html: `<p class="text-left text-gray-700"><strong>Sua resposta deve conter ideias como:</strong><br><br>${this.expectedAnswer}</p><br><p class="font-bold text-blue-600">Você acha que chegou perto?</p>`,
-                    icon: 'info',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="fa-solid fa-thumbs-up"></i> Sim, acertei!',
-                    cancelButtonText: '<i class="fa-solid fa-thumbs-down"></i> Não, preciso estudar',
-                    confirmButtonColor: '#22c55e',
-                    cancelButtonColor: '#ef4444'
-                }).then((result) => {
-                    if(result.isConfirmed) gameManager.addScore(100);
-                    else gameManager.addScore(20); // Ponto de participação
-                    document.getElementById('student-answer').disabled = true;
-                    gameManager.showNextButton();
-                });
-            }
-        }
-
-        // 3. Fase Interativa: Balança da Desigualdade
-        class ScalePhase extends Phase {
-            constructor() {
-                super("A Balança da Sociedade", "Arraste as moedas para demonstrar o conceito de Desigualdade Social.", 'interativo');
-                this.leftCoins = 0;
-                this.rightCoins = 0;
-            }
-
-            render(container) {
-                container.innerHTML = `
-                    <div class="w-full max-w-3xl fade-in text-center">
-                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold mb-3 uppercase tracking-wide"><i class="fa-solid fa-gamepad"></i> Missão Interativa</span>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${this.title}</h2>
-                        <p class="text-slate-600 mb-8">${this.description}</p>
-                        
-                        <div class="mt-10 mb-16">
-                            <div class="scale-structure" id="scale-beam">
-                                <div class="scale-pan-container pan-left">
-                                    <div class="rope"></div>
-                                    <div class="pan" id="pan-left"></div>
-                                </div>
-                                <div class="scale-pan-container pan-right">
-                                    <div class="rope"></div>
-                                    <div class="pan" id="pan-right"></div>
-                                </div>
-                            </div>
-                            <div class="scale-base"></div>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="font-bold text-slate-700 mb-3">Recursos (Arraste para os pratos da balança)</p>
-                            <div id="coin-bank" class="flex flex-wrap justify-center gap-2 min-h-[40px]">
-                                ${Array(10).fill().map((_, i) => `<div class="draggable-coin" draggable="true" id="coin-${i}">$</div>`).join('')}
-                            </div>
-                        </div>
-                        <button onclick="gameManager.currentPhaseObj.checkScale()" class="mt-6 bg-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition">Analisar Estrutura Social</button>
-                    </div>
-                `;
-                this.setupDragAndDrop();
-            }
-
-            setupDragAndDrop() {
-                const coins = document.querySelectorAll('.draggable-coin');
-                const pans = document.querySelectorAll('.pan');
-                const bank = document.getElementById('coin-bank');
-
-                coins.forEach(coin => {
-                    coin.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', e.target.id); });
-                });
-
-                [...pans, bank].forEach(zone => {
-                    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.filter = "brightness(1.2)"; });
-                    zone.addEventListener('dragleave', (e) => { zone.style.filter = "none"; });
-                    zone.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        zone.style.filter = "none";
-                        const id = e.dataTransfer.getData('text');
-                        const coin = document.getElementById(id);
-                        if(coin) {
-                            zone.appendChild(coin);
-                            this.updateScale();
-                        }
-                    });
-                });
-            }
-
-            updateScale() {
-                this.leftCoins = document.getElementById('pan-left').children.length;
-                this.rightCoins = document.getElementById('pan-right').children.length;
-                const diff = this.rightCoins - this.leftCoins;
-                const beam = document.getElementById('scale-beam');
-                // Calcula o grau de inclinação (máx +- 25 deg)
-                let angle = diff * 4; 
-                if (angle > 25) angle = 25;
-                if (angle < -25) angle = -25;
-                beam.style.transform = `rotate(${angle}deg)`;
-            }
-
-            checkScale() {
-                const total = this.leftCoins + this.rightCoins;
-                if(total < 10) {
-                    Swal.fire('Opa!', 'Distribua todos os 10 recursos para visualizar a sociedade completa.', 'warning');
-                    return;
-                }
-
-                if(this.leftCoins === this.rightCoins) {
-                    Swal.fire('Esta é a Igualdade!', 'A balança está equilibrada. Porém, o desafio pede para demonstrar a DESIGUALDADE SOCIAL. Desequilibre a balança colocando a maior parte de um lado só!', 'info');
-                } else if (Math.abs(this.leftCoins - this.rightCoins) >= 6) {
-                    Swal.fire('Objetivo Concluído!', 'Você demonstrou perfeitamente a Desigualdade Social: uma pequena parte do prato acumula quase todos os recursos, enquanto o outro lado fica vazio e sobrecarregado pelas dificuldades.', 'success');
-                    gameManager.addScore(100);
-                    gameManager.showNextButton();
-                } else {
-                    Swal.fire('Quase...', 'Há uma leve desigualdade, mas na vida real as diferenças costumam ser extremas. Tente concentrar a riqueza de forma mais agressiva em um dos lados.', 'info');
-                }
-            }
-        }
-
-        // 4. Fase Interativa: O Tabuleiro de Revisão
-        class BoardPhase extends Phase {
-            constructor() {
-                super("A Trilha da Geografia", "Jogue o dado e avance. Responda aos desafios rápidos!", 'interativo');
-                this.position = 1;
-                this.maxPosition = 20; // 20 casas para caber na tela 5x4
-                this.questions = [
-                    "O que é êxodo rural?", "Cite 1 problema da cidade grande.", "Qual a vantagem da tecnologia no campo?",
-                    "O que significa a sigla ONU?", "Cite 1 fator que compõe o IDH.", "Quem trabalha na agropecuária?"
-                ];
-            }
-
-            render(container) {
-                let gridHtml = '';
-                for(let i=1; i<=this.maxPosition; i++) {
-                    let classes = "board-cell";
-                    if(i===1) classes += " start";
-                    if(i===this.maxPosition) classes += " end";
-                    gridHtml += `<div class="${classes}" id="cell-${i}">${i===1?'Início':i===this.maxPosition?'Fim':i}</div>`;
-                }
-
-                container.innerHTML = `
-                    <div class="w-full max-w-3xl fade-in flex flex-col items-center">
-                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold mb-3 uppercase"><i class="fa-solid fa-dice"></i> Missão Interativa</span>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-4">${this.title}</h2>
-                        
-                        <div class="board-grid mb-6 w-full max-w-lg" style="grid-template-columns: repeat(5, 1fr);">
-                            ${gridHtml}
-                            <div id="player" class="player-token">🚶‍♂️</div>
-                        </div>
-
-                        <button id="btn-dice" onclick="gameManager.currentPhaseObj.rollDice()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition">
-                            <i class="fa-solid fa-dice"></i> Rolar Dado
-                        </button>
-                    </div>
-                `;
-                setTimeout(() => this.updatePlayerPosition(false), 100); // posiciona o jogador
-            }
-
-            rollDice() {
-                const diceBtn = document.getElementById('btn-dice');
-                diceBtn.disabled = true;
-                
-                let roll = Math.floor(Math.random() * 3) + 1; // Dado de 1 a 3 para demorar um pouco
-                
-                Swal.fire({
-                    title: `Você tirou ${roll}!`,
-                    text: 'Avançando...',
-                    icon: 'info',
-                    timer: 1500,
-                    showConfirmButton: false
-                }).then(() => {
-                    this.position += roll;
-                    if(this.position >= this.maxPosition) this.position = this.maxPosition;
-                    this.updatePlayerPosition(true);
-                    
-                    if(this.position === this.maxPosition) {
-                        Swal.fire('Vitória!', 'Você concluiu a Trilha da Geografia!', 'success').then(()=> {
-                            gameManager.addScore(100);
-                            gameManager.showNextButton();
-                        });
-                    } else {
-                        // Desafio rápido
-                        const q = this.questions[Math.floor(Math.random() * this.questions.length)];
-                        Swal.fire({
-                            title: 'Desafio Rápido!',
-                            text: q,
-                            input: 'text',
-                            inputPlaceholder: 'Sua resposta',
-                            confirmButtonText: 'Responder'
-                        }).then(() => {
-                            Swal.fire('Anotado!', 'Avanço garantido na jornada.', 'success');
-                            gameManager.addScore(10);
-                            diceBtn.disabled = false;
-                        });
-                    }
-                });
-            }
-
-            updatePlayerPosition(animate) {
-                const player = document.getElementById('player');
-                const cell = document.getElementById(`cell-${this.position}`);
-                if(cell && player) {
-                    const rect = cell.getBoundingClientRect();
-                    const containerRect = document.querySelector('.board-grid').getBoundingClientRect();
-                    player.style.left = `${rect.left - containerRect.left + (rect.width/2) - 16}px`;
-                    player.style.top = `${rect.top - containerRect.top + (rect.height/2) - 20}px`;
-                }
-            }
-        }
-
-        // 5. Fase Interativa: Conectar Retângulos / Categorização
-        class DragMatchPhase extends Phase {
-            constructor(title, description, draggables, dropZones) {
-                super(title, description, 'interativo');
-                this.draggables = draggables; // Array de objetos {id, text}
-                this.dropZones = dropZones; // Array de objetos {id, title, expectedId}
-                this.matches = 0;
-            }
-
-            render(container) {
-                container.innerHTML = `
-                    <div class="w-full max-w-4xl fade-in flex flex-col h-full">
-                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold mb-3 uppercase self-start"><i class="fa-solid fa-puzzle-piece"></i> Missão Interativa</span>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${this.title}</h2>
-                        <p class="text-slate-600 mb-6">${this.description}</p>
-                        
-                        <div class="flex gap-8 flex-grow">
-                            <!-- Items para arrastar -->
-                            <div class="w-1/3 flex flex-col gap-3" id="draggables-container">
-                                ${this.draggables.map(d => `
-                                    <div class="draggable-item bg-white p-4 rounded-xl border-2 border-blue-200 shadow font-bold text-blue-800 text-center" draggable="true" id="${d.id}">
-                                        ${d.text}
-                                    </div>
-                                `).join('')}
-                            </div>
-                            
-                            <!-- Zonas de Alvo -->
-                            <div class="w-2/3 flex flex-col gap-4">
-                                ${this.dropZones.map(dz => `
-                                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                        <div class="bg-slate-100 p-3 font-semibold text-slate-700 border-b border-slate-200">${dz.title}</div>
-                                        <div class="drop-zone p-4" data-expected="${dz.expectedId}"></div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                this.setupDragAndDrop();
-            }
-
-            setupDragAndDrop() {
-                const draggables = document.querySelectorAll('.draggable-item');
-                const dropZones = document.querySelectorAll('.drop-zone');
-
-                draggables.forEach(item => {
-                    item.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', e.target.id); setTimeout(() => e.target.classList.add('opacity-50'), 0); });
-                    item.addEventListener('dragend', e => { e.target.classList.remove('opacity-50'); });
-                });
-
-                dropZones.forEach(zone => {
-                    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-                    zone.addEventListener('dragleave', e => { zone.classList.remove('dragover'); });
-                    zone.addEventListener('drop', e => {
-                        e.preventDefault();
-                        zone.classList.remove('dragover');
-                        const id = e.dataTransfer.getData('text');
-                        const draggedEl = document.getElementById(id);
-                        
-                        // Verifica se acertou o alvo
-                        if(zone.getAttribute('data-expected') === id || zone.getAttribute('data-expected') === 'any') {
-                            zone.appendChild(draggedEl);
-                            draggedEl.setAttribute('draggable', 'false'); // Desativa arrastar de novo
-                            draggedEl.classList.add('bg-green-100', 'border-green-400', 'text-green-800');
-                            draggedEl.classList.remove('bg-white', 'border-blue-200', 'text-blue-800');
-                            this.matches++;
-                            
-                            if(this.matches === this.draggables.length) {
-                                Swal.fire('Perfeito!', 'Você conectou todos os conceitos corretamente!', 'success');
-                                gameManager.addScore(100);
-                                gameManager.showNextButton();
-                            }
-                        } else {
-                            Swal.fire('Ops!', 'Este não é o lugar correto para este conceito.', 'error');
-                        }
-                    });
-                });
-            }
-        }
-
-        // 6. Fase Interativa de Verdadeiro ou Falso
-        class TrueFalsePhase extends Phase {
-            constructor(title, description, statements) {
-                super(title, description, 'avaliacao');
-                this.statements = statements; // array de { text, isTrue }
-                this.currentIndex = 0;
-                this.scoreAcc = 0;
-            }
-
-            render(container) {
-                this.container = container;
-                this.showStatement();
-            }
-
-            showStatement() {
-                if(this.currentIndex >= this.statements.length) {
-                    Swal.fire('Avaliação Concluída', `Você analisou todas as afirmações.`, 'success');
-                    gameManager.addScore(this.scoreAcc);
-                    gameManager.showNextButton();
-                    return;
-                }
-
-                const statement = this.statements[this.currentIndex];
-                const html = `
-                    <div class="w-full max-w-2xl fade-in text-center">
-                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold mb-3 uppercase"><i class="fa-solid fa-pen-clip"></i> Desafio de Avaliação V/F</span>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">${this.title}</h2>
-                        <p class="text-slate-500 mb-2">Afirmação ${this.currentIndex + 1} de ${this.statements.length}</p>
-                        
-                        <div class="bg-white p-8 rounded-2xl shadow-md border-l-4 border-blue-500 text-xl font-medium text-slate-700 mb-8">
-                            "${statement.text}"
-                        </div>
-                        
-                        <div class="flex gap-4 justify-center">
-                            <button onclick="gameManager.currentPhaseObj.answer(true)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-xl text-xl transition flex items-center gap-2">
-                                <i class="fa-solid fa-check"></i> Verdadeiro
-                            </button>
-                            <button onclick="gameManager.currentPhaseObj.answer(false)" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-xl text-xl transition flex items-center gap-2">
-                                <i class="fa-solid fa-xmark"></i> Falso
-                            </button>
-                        </div>
-                    </div>
-                `;
-                this.container.innerHTML = html;
-            }
-
-            answer(userChoice) {
-                const isCorrect = userChoice === this.statements[this.currentIndex].isTrue;
-                if(isCorrect) {
-                    this.scoreAcc += 25;
-                    Swal.fire({ title: 'Acertou!', icon: 'success', timer: 1200, showConfirmButton: false });
-                } else {
-                    Swal.fire({ title: 'Errou!', icon: 'error', timer: 1200, showConfirmButton: false });
-                }
-                this.currentIndex++;
-                setTimeout(() => this.showStatement(), 1300);
-            }
-        }
-
-
-        // --- GAME MANAGER ---
-        class GameManager {
-            constructor() {
-                this.phases = [];
-                this.currentPhaseIndex = 0;
-                this.score = 0;
-            }
-
+        /**
+         * ENGINE PRINCIPAL DO JOGO
+         */
+        const Game = {
+            state: {
+                completedPhases: [],
+                currentPhase: null,
+                xp: 0,
+                maxPhase: 14 // 14 Fases Normais. A 15ª é secreta.
+            },
+            
             init() {
-                this.buildPhases();
-                this.loadPhase();
-            }
+                this.goToHub();
+            },
 
-            get currentPhaseObj() { return this.phases[this.currentPhaseIndex]; }
+            addXP(amount) {
+                this.state.xp += amount;
+                document.getElementById('xp-text').innerText = `${this.state.xp} XP`;
+                const progressPct = Math.min((this.state.xp / (this.state.maxPhase * 100)) * 100, 100);
+                document.getElementById('xp-bar').style.width = `${progressPct}%`;
+            },
 
-            buildPhases() {
-                // Cadastro minucioso das 18 Fases (8 Interativas + 10 Avaliações de acordo com a BNCC)
-
-                // FASE 1 (Interativa): O Tabuleiro
-                this.phases.push(new BoardPhase());
-
-                // FASE 2 (Avaliação - Q1): Aberta - Identificar Desigualdade
-                this.phases.push(new OpenTextPhase(
-                    "Questão 1: A marca da Desigualdade",
-                    "A desigualdade social atinge muitas sociedades. Indique a estratégia para identificar se há desigualdade social em um determinado lugar. Por que essa estratégia é importante?",
-                    "A estratégia envolve observar as diferenças nas condições de vida (moradia, acesso a saneamento, saúde, educação) e a distribuição de renda entre grupos em um mesmo território. É importante para que o governo crie políticas públicas que ajudem os mais necessitados e promovam a justiça social."
-                ));
-
-                // FASE 3 (Interativa): Conectar Conceitos Geográficos (Retângulos)
-                this.phases.push(new DragMatchPhase(
-                    "Conectando Ideias: População e Espaço",
-                    "Arraste a palavra da esquerda para a sua definição correta na direita.",
-                    [ {id: 'c1', text: 'Êxodo Rural'}, {id: 'c2', text: 'Rede Urbana'}, {id: 'c3', text: 'Desigualdade Social'} ],
-                    [ 
-                        {title: "Interligação entre cidades por transporte e comunicação.", expectedId: 'c2'},
-                        {title: "Diferença injusta nas condições de vida das pessoas.", expectedId: 'c3'},
-                        {title: "Saída de pessoas do campo para morar na cidade.", expectedId: 'c1'}
-                    ]
-                ));
-
-                // FASE 4 (Avaliação - Q2): Múltipla Escolha - O que é IDH
-                this.phases.push(new QuizPhase(
-                    "Questão 2: O Índice de Desenvolvimento Humano",
-                    "",
-                    "O IDH é adotado pela ONU. Ele é calculado com base em três aspectos importantes que revelam a qualidade de vida das pessoas. São eles:",
-                    [
-                        "a) saúde, educação e viagens.",
-                        "b) escolaridade, expectativa de vida e renda.",
-                        "c) renda, ensino superior e empregabilidade."
-                    ],
-                    1 // Índice da resposta correta (b)
-                ));
-
-                // FASE 5 (Interativa): A Balança da Sociedade
-                this.phases.push(new ScalePhase());
-
-                // FASE 6 (Avaliação - Q3): Múltipla Escolha - Características da desigualdade
-                this.phases.push(new QuizPhase(
-                    "Questão 3: Entendendo a Desigualdade",
-                    "",
-                    "A desigualdade social é caracterizada pela diferença das condições de vida da população. Isso quer dizer que:",
-                    [
-                        "a) parte da população vive em locais com boa qualidade ambiental, saúde e educação, enquanto outra parcela não desfruta essas condições e vive em locais precários.",
-                        "b) toda a população recebe as mesmas oportunidades, porém alguns aproveitam e outras pessoas não são capazes de se desenvolver.",
-                        "c) a igualdade social é aplicada em todas as camadas da sociedade e, no Brasil, todos os habitantes têm acesso à qualidade de vida."
-                    ],
-                    0 // (a)
-                ));
-
-                // FASE 7 (Interativa): Categorização (Cidade x Campo - Habilidade EF05GE04)
-                this.phases.push(new DragMatchPhase(
-                    "Organizando os Trabalhadores",
-                    "Onde esses profissionais costumam atuar predominantemente? Arraste-os para o ambiente correto.",
-                    [ {id: 'p1', text: 'Agricultor'}, {id: 'p2', text: 'Urbanista'}, {id: 'p3', text: 'Ordenhador'}, {id: 'p4', text: 'Operador de Metrô'} ],
-                    [ 
-                        {title: "Trabalho no Campo (Rural)", expectedId: 'p1'}, // Simplificação no JS para aceitar múltiplos seria complexa em 1 file, vamos usar um hack: aceitamos o primeiro que encaixa perfeitamente para validar a dinâmica da fase.
-                        {title: "Trabalho na Cidade (Urbano)", expectedId: 'p2'},
-                        {title: "Trabalho no Campo (Rural)", expectedId: 'p3'},
-                        {title: "Trabalho na Cidade (Urbano)", expectedId: 'p4'}
-                    ]
-                ));
-
-                // FASE 8 (Avaliação - Q4): Verdadeiro ou Falso - Mapa IDH
-                this.phases.push(new TrueFalsePhase(
-                    "Questão 4: Análise do Mapa do IDH",
-                    "Avalie o mapa mentalmente e responda Verdadeiro ou Falso para as afirmações:",
-                    [
-                        { text: "O Brasil está entre os 100 países com maior IDH do mundo, indicando acesso à educação, expectativa de vida e renda.", isTrue: true },
-                        { text: "O Sudão do Sul tem um excelente IDH, uma vez que está próximo de zero.", isTrue: false }, // Próximo de zero é ruim
-                        { text: "A Suíça lidera o ranking do IDH, ocupando a 1ª posição, afinal está próxima ao número 1 no índice.", isTrue: true },
-                        { text: "Embora o Brasil esteja em uma boa colocação, ainda há desigualdade social, afinal a distribuição de renda não é adequada.", isTrue: true }
-                    ]
-                ));
-
-                // FASE 9 (Avaliação - Q5): Múltipla Escolha - Riqueza e IDH
-                this.phases.push(new QuizPhase(
-                    "Questão 5: Riqueza e Posição no Ranking",
-                    "",
-                    "Nos países das primeiras posições no ranking do IDH da ONU, a riqueza é:",
-                    [
-                        "a) produzida e guardada em bancos para as futuras gerações.",
-                        "b) distribuída entre os mais ricos e a desigualdade social ampliada.",
-                        "c) produzida e compartilhada de maneira menos desigual."
-                    ],
-                    2 // (c)
-                ));
-
-                // FASE 10 (Interativa): Linha do tempo tecnológica (Habilidade EF05GE05)
-                this.phases.push(new DragMatchPhase(
-                    "Evolução Tecnológica no Campo",
-                    "Ligue a ferramenta à sua época tecnológica na agricultura.",
-                    [ {id: 't1', text: 'Drone Agrícola'}, {id: 't2', text: 'Enxada Manual'}, {id: 't3', text: 'Trator a Motor'} ],
-                    [ 
-                        {title: "Passado (Trabalho braçal intenso)", expectedId: 't2'},
-                        {title: "Século XX (Mecanização pesada)", expectedId: 't3'},
-                        {title: "Atualidade (Agricultura de Precisão)", expectedId: 't1'}
-                    ]
-                ));
-
-                // FASE 11 (Avaliação - Q6): Aberta - Oportunidades
-                this.phases.push(new OpenTextPhase(
-                    "Questão 6: Oportunidades de Vida",
-                    "Qual fator é responsável por proporcionar condições para que as pessoas tenham oportunidades melhores de emprego e de renda? Você considera esse fator importante? Por quê?",
-                    "Acesso à EDUCAÇÃO e qualificação profissional. Sim, é fundamental pois permite que a pessoa consiga empregos mais complexos e com melhores salários, quebrando o ciclo da pobreza."
-                ));
-
-                // FASE 12 (Avaliação - Q7): Aberta - Iniciativas contra Desigualdade
-                this.phases.push(new OpenTextPhase(
-                    "Questão 7: Ações de Inclusão",
-                    "Cite uma iniciativa (política pública ou ação social) que auxilia na redução da desigualdade social e explique por que ela é importante.",
-                    "Programas de transferência de renda (como Bolsa Família), cotas raciais e sociais nas universidades, ou construção de escolas públicas de tempo integral. São importantes porque garantem o básico (alimentação/estudo) para quem não tem recursos, gerando inclusão."
-                ));
-
-                // FASE 13 (Interativa): Cadeia Produtiva da Laranja (Preparação para Q9)
-                this.phases.push(new DragMatchPhase(
-                    "A Rota da Laranja",
-                    "Faça a ligação entre a etapa da produção da laranja e o local onde ela ocorre.",
-                    [ {id: 'L1', text: 'Colheita da Laranja'}, {id: 'L2', text: 'Envazamento (Fazer Suco de Caixinha)'}, {id: 'L3', text: 'Venda do Suco ao Cliente'} ],
-                    [ 
-                        {title: "Espaço Rural (Campo / Fazenda)", expectedId: 'L1'},
-                        {title: "Espaço Industrial (Fábrica)", expectedId: 'L2'},
-                        {title: "Setor de Serviços (Supermercado / Cidade)", expectedId: 'L3'}
-                    ]
-                ));
-
-                // FASE 14 (Avaliação - Q8): Múltipla Escolha - Gráfico do IBGE
-                this.phases.push(new QuizPhase(
-                    "Questão 8: Dados do IBGE e Desigualdade",
-                    "",
-                    "Considerando dados estatísticos sobre emprego e raça no Brasil, podemos afirmar que:",
-                    [
-                        "a) No Brasil, a população branca sofre predominantemente com o desemprego.",
-                        "b) No Brasil, dados indicam que o desemprego afeta mais a população negra e parda do que a população branca (reflexo da desigualdade histórico-racial).",
-                        "c) No Brasil as desigualdades sociais são inexistentes entre brancos, pardos e pretos."
-                    ],
-                    1 // (b)
-                ));
-
-                // FASE 15 (Interativa): A Ponte da Inclusão
-                this.phases.push(new TrueFalsePhase(
-                    "Construindo a Ponte da Igualdade",
-                    "Para diminuir a desigualdade, classifique se as atitudes abaixo ajudam (Verdadeiro) ou atrapalham (Falso) a sociedade:",
-                    [
-                        { text: "Investir na melhoria das escolas públicas rurais e urbanas.", isTrue: true },
-                        { text: "Cobrar mais impostos dos mais pobres e menos dos mais ricos.", isTrue: false },
-                        { text: "Garantir acesso a hospitais de qualidade para todas as classes sociais.", isTrue: true }
-                    ]
-                ));
-
-                // FASE 16 (Avaliação - Q9): Múltipla Escolha (Imagens da Laranja adaptadas)
-                this.phases.push(new QuizPhase(
-                    "Questão 9: A Produção do Suco 🍊",
-                    "Observe os processos de produção e indústria:",
-                    "A produção/colheita da laranja e o envazamento do suco acontecem, respectivamente, em quais meios, e quem trabalha neles?",
-                    [
-                        "a) Ambos no meio urbano. (Trabalhador: Operário para colheita e envazamento).",
-                        "b) Colheita no meio rural (Trabalhador: Agricultor/Boia-fria). Envazamento no meio industrial/urbano (Trabalhador: Operário de fábrica/Técnico).",
-                        "c) Ambos no meio rural. (Trabalhador: Agricultor faz tudo na fazenda até colocar na caixinha)."
-                    ],
-                    1 // (b)
-                ));
-
-                // FASE 17 (Avaliação - Q10): Múltipla Escolha - Trabalhadores do Campo
-                this.phases.push(new QuizPhase(
-                    "Questão 10: Profissionais do Campo Hoje",
-                    "Habilidade: EF05GE05 (Tecnologia e Trabalho)",
-                    "Atualmente, existe grande diversidade de trabalho no campo. Assinale a alternativa que contempla SOMENTE trabalhadores do campo:",
-                    [
-                        "a) agricultor, pecuarista, engenheiro agrícola, ordenhador e piloto de drone.",
-                        "b) arquiteto, pecuarista, médico, cientista de dados e extrativista.",
-                        "c) enfermeiro, urbanista, engenheiro agrícola e ordenhador."
-                    ],
-                    0 // (a)
-                ));
-
-                // FASE 18 (Interativa/Final Boss): Resumo Final
-                this.phases.push(new QuizPhase(
-                    "Fase Final: O Guardião da Geografia",
-                    "",
-                    "Ao concluir nossa jornada, qual é a principal lição que aprendemos sobre a Geografia, o trabalho e a sociedade (EF05GE02, EF05GE04, EF05GE05)?",
-                    [
-                        "a) Que o campo e a cidade são lugares que não dependem um do outro e a tecnologia só existe nas grandes capitais.",
-                        "b) Que a sociedade é marcada por desigualdades que precisam ser corrigidas; que o campo e a cidade estão interligados, e a tecnologia mudou as profissões em todos os lugares.",
-                        "c) Que a desigualdade não existe nos países ricos e o trabalho rural ainda é feito apenas com ferramentas antigas."
-                    ],
-                    1 // (b)
-                ));
-            }
-
-            loadPhase() {
-                const phase = this.currentPhaseObj;
+            renderScreen(htmlContent, initCallback = null) {
+                const container = document.getElementById('app-container');
+                container.innerHTML = htmlContent;
                 
-                // Atualiza UI da casca do jogo
-                document.getElementById('phase-counter').innerText = `Fase ${this.currentPhaseIndex + 1} de ${this.phases.length}`;
-                document.getElementById('btn-next').classList.add('hidden');
+                // Força reflow para animação rodar
+                void container.offsetWidth;
                 
-                // Barra de progresso
-                const progress = ((this.currentPhaseIndex) / this.phases.length) * 100;
-                document.getElementById('progress-bar').style.width = `${progress}%`;
-
-                // Renderiza a fase
-                const container = document.getElementById('game-area');
-                container.innerHTML = ''; // limpa
-                phase.render(container);
-            }
-
-            showNextButton() {
-                const btn = document.getElementById('btn-next');
-                btn.classList.remove('hidden');
-                btn.classList.add('fade-in');
-            }
-
-            nextPhase() {
-                this.currentPhaseObj.cleanup();
-                this.currentPhaseIndex++;
+                container.classList.add('fade-enter-active');
+                setTimeout(() => container.classList.remove('fade-enter-active'), 500);
                 
-                if (this.currentPhaseIndex < this.phases.length) {
-                    this.loadPhase();
-                } else {
-                    this.showVictoryScreen();
-                }
-            }
+                if (initCallback) initCallback();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
 
-            addScore(points) {
-                this.score += points;
-                // Animação de pontuação
-                const scoreEl = document.getElementById('score-display');
-                scoreEl.innerText = this.score;
-                scoreEl.style.color = '#fbbf24';
-                scoreEl.style.transform = 'scale(1.5)';
-                setTimeout(() => {
-                    scoreEl.style.color = 'white';
-                    scoreEl.style.transform = 'scale(1)';
-                }, 300);
-            }
+            goToHub() {
+                this.state.currentPhase = null;
+                const completedCount = this.state.completedPhases.filter(id => id <= 14).length;
 
-            showVictoryScreen() {
-                document.getElementById('progress-bar').style.width = `100%`;
-                const container = document.getElementById('game-area');
-                container.innerHTML = `
-                    <div class="text-center fade-in">
-                        <div class="text-6xl mb-6">🏆🌍🎉</div>
-                        <h1 class="text-4xl font-black text-blue-800 mb-4">Parabéns, Geógrafo!</h1>
-                        <p class="text-xl text-slate-600 mb-6">Você completou todas as 18 missões e provou ser um mestre nas dinâmicas de desigualdade, cidade, campo e tecnologia!</p>
-                        <div class="bg-blue-100 border-4 border-blue-400 p-8 rounded-3xl inline-block">
-                            <p class="text-2xl font-bold text-blue-900 mb-2">Pontuação Final</p>
-                            <p class="text-6xl font-black text-blue-600">${this.score}</p>
+                let gridHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">`;
+                
+                // Renderiza fases 1 a 14
+                PhaseData.filter(p => p.id <= 14).forEach((phase, index) => {
+                    const isCompleted = this.state.completedPhases.includes(phase.id);
+                    
+                    gridHTML += `
+                        <div class="panel-stone p-5 relative group overflow-hidden transition-all duration-300 ${isCompleted ? 'border-amber-500/80 bg-[#251e16]' : 'hover:border-amber-600/50 hover:-translate-y-2 cursor-pointer'}" 
+                             onclick="Game.startPhase(${phase.id})">
+                            
+                            ${isCompleted ? '<div class="absolute inset-0 bg-amber-900/10 z-0"></div><div class="absolute top-3 right-3 bg-amber-500 text-black w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10">✓</div>' : ''}
+                            
+                            <div class="relative z-10">
+                                <div class="text-4xl mb-4 bg-black/30 w-16 h-16 rounded-2xl flex items-center justify-center border border-amber-900/50 group-hover:scale-110 transition-transform">${phase.icon}</div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] bg-amber-950 text-amber-500 px-2 py-0.5 rounded font-bold uppercase border border-amber-900">Fase ${phase.id}</span>
+                                </div>
+                                <h3 class="font-ancient text-lg text-amber-200 font-bold mb-2">${phase.title}</h3>
+                                <p class="text-xs text-amber-100/60 line-clamp-2 leading-relaxed">${phase.desc}</p>
+                            </div>
+                            
+                            ${isCompleted ? '' : `
+                            <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-600 to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                            `}
                         </div>
-                        <br>
-                        <button onclick="location.reload()" class="mt-8 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition">
-                            Jogar Novamente <i class="fa-solid fa-rotate-right"></i>
-                        </button>
+                    `;
+                });
+                gridHTML += `</div>`;
+
+                // CÂMARA SECRETA (Se completou as 14)
+                if (completedCount >= 14) {
+                    const isBossBeaten = this.state.completedPhases.includes(15);
+                    gridHTML += `
+                        <div class="mt-12 mb-4 p-1 rounded-2xl ${isBossBeaten ? 'bg-green-600' : 'bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-600 pulse-glow'}">
+                            <div class="bg-black p-8 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-stone-900 transition-colors text-center" onclick="Game.startPhase(15)">
+                                <span class="text-6xl mb-3">${isBossBeaten ? '🎓' : '🗝️'}</span>
+                                <h3 class="font-ancient text-3xl text-amber-400 font-bold mb-2 uppercase">${isBossBeaten ? 'Mestre da História' : 'A Câmara Secreta (Avaliação Final)'}</h3>
+                                <p class="text-amber-100">${isBossBeaten ? 'Você desvendou todos os segredos do Escape Room!' : 'Você provou seu valor. O portal foi aberto. Entre para a Prova Final de Avaliação!'}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const hubHTML = `
+                    <div class="text-center mb-12 relative">
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-amber-600/20 rounded-full blur-3xl -z-10"></div>
+                        <h2 class="font-ancient text-4xl md:text-5xl text-amber-400 mb-4 font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">O Mapa do Tempo</h2>
+                        <p class="text-amber-100 max-w-2xl mx-auto text-sm bg-black/40 p-4 rounded-xl border border-amber-900/50 backdrop-blur-sm">
+                            Progresso da Jornada: <span class="font-bold text-amber-400">${completedCount} de 14 Fases Resolvidas</span><br>
+                            Mergulhe nos mistérios das antigas civilizações. Ganhe XP e prove o seu conhecimento histórico!
+                        </p>
+                    </div>
+                    ${gridHTML}
+                `;
+                this.renderScreen(hubHTML);
+            },
+
+            startPhase(id) {
+                const phase = PhaseData.find(p => p.id === id);
+                if (!phase) return;
+                this.state.currentPhase = id;
+                this.renderScreen(phase.template(), phase.init);
+            },
+
+            completePhase(learningText) {
+                const phase = PhaseData.find(p => p.id === this.state.currentPhase);
+                let xpGained = this.state.currentPhase === 15 ? 500 : 100;
+                
+                // Só ganha XP na primeira vez
+                if (!this.state.completedPhases.includes(this.state.currentPhase)) {
+                    this.state.completedPhases.push(this.state.currentPhase);
+                    this.addXP(xpGained);
+                }
+                
+                document.getElementById('victory-title').innerText = phase.id === 15 ? '🎓 Fuga Bem Sucedida!' : `Fase ${phase.id} Concluída!`;
+                document.getElementById('victory-icon').innerText = phase.id === 15 ? '👑' : phase.icon;
+                document.getElementById('victory-learning').innerText = learningText;
+                document.getElementById('victory-xp').innerText = `+${xpGained} Pontos de Experiência`;
+                
+                const modal = document.getElementById('victory-modal');
+                const panel = document.getElementById('victory-panel');
+                
+                modal.classList.remove('hidden');
+                void modal.offsetWidth;
+                
+                modal.classList.replace('opacity-0', 'opacity-100');
+                panel.classList.replace('scale-95', 'scale-100');
+                
+                this.showToast('sucesso', 'Conquista Desbloqueada!', `+${xpGained} Pontos de Experiência`);
+            },
+
+            closeVictoryModal() {
+                const modal = document.getElementById('victory-modal');
+                const panel = document.getElementById('victory-panel');
+                
+                modal.classList.replace('opacity-100', 'opacity-0');
+                panel.classList.replace('scale-100', 'scale-95');
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    this.goToHub();
+                }, 300);
+            },
+
+            showToast(type, title, message) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                const colors = type === 'erro' ? 'bg-red-950 border-red-700 text-red-200' : 'bg-[#182e18] border-green-600 text-green-200';
+                const icon = type === 'erro' ? '❌' : '🌟';
+                
+                toast.className = `toast border-2 p-4 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex items-start gap-3 max-w-sm backdrop-blur-md ${colors}`;
+                toast.innerHTML = `
+                    <div class="bg-black/40 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">${icon}</div>
+                    <div>
+                        <h4 class="font-bold text-sm tracking-wide">${title}</h4>
+                        <p class="text-xs opacity-90 mt-1">${message}</p>
                     </div>
                 `;
-                document.getElementById('btn-next').classList.add('hidden');
-            }
-        }
-
-        // --- INICIALIZAÇÃO ---
-        const gameManager = new GameManager();
-        
-        // Listener do botão global de avançar
-        document.getElementById('btn-next').addEventListener('click', () => {
-            gameManager.nextPhase();
-        });
-
-        // Inicia o jogo quando a janela carregar
-        window.onload = () => {
-            try {
-                gameManager.init();
-            } catch (error) {
-                console.error("Erro ao carregar o jogo:", error);
-                document.getElementById('game-area').innerHTML = `<p class="text-red-500 font-bold">Ocorreu um erro ao carregar o jogo. Verifique o console.</p>`;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
+            },
+            
+            shakeElement(elementId) {
+                const el = document.getElementById(elementId);
+                el.classList.remove('shake-animation');
+                void el.offsetWidth;
+                el.classList.add('shake-animation');
             }
         };
 
+        const PhaseData = [
+            {
+                id: 1, icon: '🏺', title: 'O Aprendiz de Escriba', desc: 'Simule o entalhe na argila úmida e valide o conhecimento mesopotâmico.',
+                template: () => `
+                    <div class="panel-stone p-6 flex flex-col items-center">
+                        <div class="w-full flex justify-between items-center mb-6">
+                            <h2 class="font-ancient text-2xl text-amber-400">1. Estúdio Cuneiforme</h2>
+                            <span class="bg-amber-900/50 text-amber-300 px-3 py-1 rounded text-xs font-bold border border-amber-700">Mesopotâmia</span>
+                        </div>
+                        
+                        <p class="text-sm text-amber-200 mb-4 text-center">Para avançar, faça pelo menos <strong class="text-white">50 marcações</strong> de estudo na argila húmida.</p>
+                        
+                        <div class="w-full max-w-2xl bg-[#966536] rounded-2xl p-2 relative shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] border-4 border-[#593514]">
+                            <canvas id="f1-canvas" class="w-full h-64 bg-amber-700/20 rounded-xl cursor-crosshair mix-blend-multiply touch-none"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 text-black font-ancient text-5xl">▼ ◀ ▲ ▶</div>
+                            
+                            <!-- Barra de progresso de desenho -->
+                            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-1/2 h-2 bg-black/50 rounded-full overflow-hidden">
+                                <div id="f1-progress" class="h-full bg-green-500 w-0 transition-all duration-200"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex gap-4 w-full max-w-2xl">
+                            <button onclick="F1.clear()" class="flex-1 py-3 bg-amber-900/50 hover:bg-amber-800 rounded-xl text-sm border border-amber-700 font-bold transition">🧹 Amassar Argila</button>
+                            <button id="f1-btn-next" onclick="F1.answer()" class="flex-1 py-3 btn-gold rounded-xl text-sm opacity-50 pointer-events-none transition-all">Analisar Tábuas ➔</button>
+                        </div>
+                        
+                        <div id="f1-quiz" class="hidden w-full max-w-2xl mt-8 p-6 bg-black/60 border-2 border-amber-700 rounded-2xl text-center shadow-2xl">
+                            <h3 class="text-amber-500 font-bold mb-4 uppercase text-xs tracking-widest">Julgue a Afirmação</h3>
+                            <p class="text-lg md:text-xl font-medium italic mb-8 text-amber-100">"Os escribas liam por puro lazer e utilizavam papéis para todos os seus registos comerciais."</p>
+                            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                                <button onclick="F1.check(false)" class="flex-1 px-6 py-4 bg-red-950/80 rounded-xl font-bold border-2 border-red-700 hover:bg-red-900 transition-colors shadow-lg">❌ MENTIRA</button>
+                                <button onclick="F1.check(true)" class="flex-1 px-6 py-4 bg-green-950/80 rounded-xl font-bold border-2 border-green-700 hover:bg-green-900 transition-colors shadow-lg">✔️ VERDADE</button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F1 = {
+                        ctx: null, drawing: false, marks: 0,
+                        setup() {
+                            const canvas = document.getElementById('f1-canvas');
+                            canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+                            this.ctx = canvas.getContext('2d');
+                            this.ctx.fillStyle = 'rgba(150, 101, 54, 0.1)'; this.ctx.fillRect(0,0,canvas.width,canvas.height);
+                            
+                            const drawHandler = (e) => { 
+                                this.drawing = true; 
+                                e.preventDefault();
+                                this.draw(e.touches ? e.touches[0] : e); 
+                            };
+                            const moveHandler = (e) => {
+                                if(!this.drawing) return;
+                                e.preventDefault();
+                                this.draw(e.touches ? e.touches[0] : e);
+                            };
+                            
+                            canvas.onmousedown = drawHandler;
+                            canvas.ontouchstart = drawHandler;
+                            canvas.onmousemove = moveHandler;
+                            canvas.ontouchmove = moveHandler;
+                            
+                            window.onmouseup = () => this.drawing = false;
+                            window.ontouchend = () => this.drawing = false;
+                        },
+                        draw(e) {
+                            if(!this.drawing) return;
+                            const rect = document.getElementById('f1-canvas').getBoundingClientRect();
+                            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+                            this.ctx.fillStyle = 'rgba(40, 20, 5, 0.8)';
+                            this.ctx.beginPath(); this.ctx.arc(x, y, 4, 0, Math.PI*2); this.ctx.fill();
+                            
+                            this.marks++;
+                            const pct = Math.min((this.marks / 50) * 100, 100);
+                            document.getElementById('f1-progress').style.width = pct + '%';
+                            
+                            if (this.marks >= 50) {
+                                const btn = document.getElementById('f1-btn-next');
+                                btn.classList.remove('opacity-50', 'pointer-events-none');
+                                btn.classList.add('pulse-glow');
+                            }
+                        },
+                        clear() { this.marks = 0; document.getElementById('f1-progress').style.width = '0%'; document.getElementById('f1-btn-next').classList.add('opacity-50', 'pointer-events-none'); document.getElementById('f1-btn-next').classList.remove('pulse-glow'); this.setup(); },
+                        answer() { 
+                            document.getElementById('f1-quiz').classList.remove('hidden'); 
+                            document.getElementById('f1-quiz').scrollIntoView({behavior: 'smooth'});
+                        },
+                        check(ans) {
+                            if(!ans) Game.completePhase("A escrita surgiu da necessidade económica. Os escribas gravavam em argila húmida (cuneiforme), pois o papel não existia na Mesopotâmia.");
+                            else Game.showToast('erro', 'Análise Incorreta', 'Lembre-se: o papel não existia e a leitura era estritamente administrativa.');
+                        }
+                    };
+                    setTimeout(() => F1.setup(), 100);
+                }
+            },
+            
+            {
+                id: 2, icon: '👁️', title: 'Decifrando Seti I', desc: 'Clique nos hieróglifos para extrair os seus significados ocultos.',
+                template: () => `
+                    <div class="panel-stone p-6" id="f2-container">
+                        <h2 class="font-ancient text-2xl text-amber-400 mb-2 text-center">2. Mural da Tumba</h2>
+                        <p class="text-sm text-center mb-6 text-amber-100/80">A escrita egípcia representa ideias e sons. Encontre e <strong class="text-amber-400">traduza 3 símbolos</strong> sagrados clicando neles.</p>
+                        
+                        <div class="grid grid-cols-4 md:grid-cols-6 gap-3 max-w-2xl mx-auto bg-amber-50 p-5 rounded-2xl border-8 border-[#c2b280] shadow-[inset_0_5px_20px_rgba(0,0,0,0.5)]">
+                            ${['🦅','👁️','🐍','🪲','🏺','⚖️','☀️','🦁','🦉','✝️','🌊','🪶'].map((sym, i) => 
+                                `<button onclick="F2.clickSym('${sym}', ${i}, this)" id="sym-${i}" class="text-4xl p-4 bg-amber-100 hover:bg-amber-300 border border-amber-300 rounded shadow-md transition-all active:scale-95 text-black relative overflow-hidden group">
+                                    <span class="relative z-10">${sym}</span>
+                                    <div class="absolute inset-0 bg-amber-400/50 scale-0 group-active:scale-100 transition-transform rounded-full"></div>
+                                 </button>`
+                            ).join('')}
+                        </div>
+                        
+                        <div class="mt-8 flex justify-center gap-4" id="f2-slots">
+                            <div class="w-20 h-20 border-2 border-dashed border-amber-600/50 bg-black/30 rounded-xl flex items-center justify-center text-4xl shadow-inner transition-colors duration-300" id="slot-0"></div>
+                            <div class="w-20 h-20 border-2 border-dashed border-amber-600/50 bg-black/30 rounded-xl flex items-center justify-center text-4xl shadow-inner transition-colors duration-300" id="slot-1"></div>
+                            <div class="w-20 h-20 border-2 border-dashed border-amber-600/50 bg-black/30 rounded-xl flex items-center justify-center text-4xl shadow-inner transition-colors duration-300" id="slot-2"></div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F2 = {
+                        found: 0,
+                        meanings: {'🦅':'Poder','👁️':'Proteção','🐍':'Realeza','🪲':'Renascimento','🏺':'Vida','⚖️':'Justiça','☀️':'Luz','🦁':'Força','🦉':'Sabedoria','✝️':'Eternidade','🌊':'Purificação','🪶':'Verdade'},
+                        clickSym(sym, id, el) {
+                            if (this.found >= 3 || el.classList.contains('opacity-20')) return;
+                            
+                            const slot = document.getElementById(`slot-${this.found}`);
+                            slot.innerHTML = `<div class="animate-bounce">${sym}</div>`;
+                            slot.classList.replace('border-dashed', 'border-solid');
+                            slot.classList.replace('border-amber-600/50', 'border-green-500');
+                            slot.classList.replace('bg-black/30', 'bg-green-900/40');
+                            
+                            el.classList.add('opacity-20', 'pointer-events-none');
+                            this.found++;
+                            
+                            Game.showToast('sucesso', 'Símbolo Traduzido', `O símbolo ${sym} representa o conceito de "${this.meanings[sym]}".`);
+                            
+                            if (this.found === 3) {
+                                document.getElementById('f2-container').classList.add('pulse-glow');
+                                setTimeout(() => Game.completePhase("Os antigos egípcios desenvolveram um sistema onde os símbolos (hieróglifos) significavam tanto sons quanto conceitos vitais e religiosos para o seu povo."), 1500);
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 3, icon: '🤟', title: 'Frequência Inclusiva', desc: 'Sintonize a linha do tempo para a criação da lei de Libras.',
+                template: () => `
+                    <div class="panel-stone p-8 text-center relative overflow-hidden" id="f3-container">
+                        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')] opacity-50 z-0 pointer-events-none" id="f3-static"></div>
+                        
+                        <div class="relative z-10">
+                            <h2 class="font-ancient text-3xl text-amber-400 mb-2">3. Direitos e Cidadania</h2>
+                            <p class="text-sm text-amber-200 mb-10">Deslize o sintonizador para o ano exato em que a Libras foi reconhecida legalmente no Brasil.</p>
+                            
+                            <div class="relative w-full max-w-2xl mx-auto h-4 bg-black rounded-full mb-16 border-2 border-stone-600 shadow-[inset_0_2px_5px_rgba(0,0,0,0.8)]">
+                                <input type="range" min="1980" max="2020" value="1980" class="w-full absolute inset-0 opacity-0 cursor-pointer z-10" id="f3-slider" oninput="F3.update(this.value)">
+                                <div class="absolute h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full pointer-events-none" id="f3-fill" style="width: 0%"></div>
+                                
+                                <div class="absolute -top-10 left-0 transform -translate-x-1/2 bg-amber-950 border border-amber-500 px-4 py-2 rounded-xl text-base font-extrabold text-amber-400 shadow-lg flex flex-col items-center" id="f3-tooltip">
+                                    <span>1980</span>
+                                    <div class="w-2 h-2 bg-amber-500 transform rotate-45 absolute -bottom-1"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="f3-target" class="opacity-0 transform translate-y-10 transition-all duration-500 bg-green-950/60 border-2 border-green-500 p-6 rounded-2xl max-w-md mx-auto shadow-[0_0_30px_rgba(0,255,0,0.1)]">
+                                <div class="w-20 h-20 bg-green-800 rounded-full mx-auto flex items-center justify-center text-5xl mb-4 border-4 border-green-400 animate-pulse">📜</div>
+                                <h3 class="font-bold text-2xl mb-2 text-green-300">Ano 2002 Sintonizado!</h3>
+                                <button onclick="F3.finish()" class="w-full mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">Decretar Lei ➔</button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F3 = {
+                        update(val) {
+                            const pct = ((val - 1980) / (2020 - 1980)) * 100;
+                            document.getElementById('f3-fill').style.width = pct + '%';
+                            const tooltip = document.getElementById('f3-tooltip');
+                            tooltip.style.left = pct + '%';
+                            tooltip.querySelector('span').innerText = val;
+                            
+                            // Visual noise effect based on distance from 2002
+                            const dist = Math.abs(val - 2002);
+                            const opacity = Math.min(dist * 0.05, 0.5);
+                            document.getElementById('f3-static').style.opacity = opacity;
+                            
+                            if (val == 2002) {
+                                document.getElementById('f3-target').classList.replace('opacity-0', 'opacity-100');
+                                document.getElementById('f3-target').classList.replace('translate-y-10', 'translate-y-0');
+                                document.getElementById('f3-container').classList.add('border-green-500');
+                            } else {
+                                document.getElementById('f3-target').classList.replace('opacity-100', 'opacity-0');
+                                document.getElementById('f3-target').classList.replace('translate-y-0', 'translate-y-10');
+                                document.getElementById('f3-container').classList.remove('border-green-500');
+                            }
+                        },
+                        finish() { Game.completePhase("A Libras foi reconhecida por lei apenas em 2002, o que foi essencial para garantir à comunidade surda o direito de comunicar, estudar e trabalhar plenamente."); }
+                    };
+                }
+            },
+
+            {
+                id: 4, icon: '⛵', title: 'Navegação de 1492', desc: 'Pilote a caravela até às ilhas para conhecer os nativos.',
+                template: () => `
+                    <div class="panel-stone p-6 relative overflow-hidden h-[550px] flex flex-col">
+                        <div class="flex justify-between items-center mb-4 z-10 relative bg-black/50 p-3 rounded-xl border border-amber-900/50">
+                            <div>
+                                <h2 class="font-ancient text-xl text-amber-400">4. Viagem de Colombo</h2>
+                                <p class="text-xs text-amber-100">Toque no mar para pilotar a caravela até uma das ilhas.</p>
+                            </div>
+                            <span class="text-3xl animate-pulse">🧭</span>
+                        </div>
+                        
+                        <div class="flex-grow bg-[#1a4a5e] rounded-xl relative border-4 border-amber-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] overflow-hidden cursor-pointer" onclick="F4.moveShip(event)" id="f4-sea">
+                            
+                            <!-- Fog of War -->
+                            <div id="f4-fog" class="absolute inset-0 bg-black/60 pointer-events-none transition-all duration-700" style="mask-image: radial-gradient(circle 150px at 15% 85%, transparent 40%, black 100%); -webkit-mask-image: radial-gradient(circle 150px at 15% 85%, transparent 40%, black 100%); z-index:15;"></div>
+
+                            <!-- Ilhas -->
+                            <div class="absolute top-[20%] left-[20%] w-28 h-20 bg-green-800 rounded-[40%] border-b-8 border-green-950 flex flex-col items-center justify-center shadow-lg">
+                                <span class="text-xl">🌴</span>
+                            </div>
+                            <div class="absolute top-[60%] left-[70%] w-36 h-24 bg-green-700 rounded-[50%] border-b-8 border-green-900 flex flex-col items-center justify-center shadow-lg">
+                                <span class="text-xl">🛖</span>
+                            </div>
+                            
+                            <!-- Caravela (Ship) -->
+                            <div id="f4-ship" class="absolute top-[85%] left-[15%] text-5xl transition-all duration-1000 ease-in-out transform -translate-x-1/2 -translate-y-1/2 z-20" style="filter: drop-shadow(0 10px 5px rgba(0,0,0,0.5));">⛵</div>
+                        </div>
+
+                        <!-- Menu Diálogo Interativo -->
+                        <div id="f4-dialog" class="hidden absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-[#f4ebd8] text-stone-900 p-6 rounded-2xl border-4 border-amber-900 shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-30 w-[90%] max-w-lg">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-amber-900 rounded-full flex items-center justify-center text-2xl flex-shrink-0 text-white">📜</div>
+                                <div>
+                                    <p class="font-bold text-amber-950 mb-4 text-sm leading-relaxed border-b border-amber-900/20 pb-4">Atracámos nas ilhas da América Central! Quais os povos indígenas que habitam primariamente estas terras de acordo com os nossos estudos?</p>
+                                    <div class="flex flex-col gap-3">
+                                        <button onclick="F4.check(false)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">A) Tupis e Guaranis</button>
+                                        <button onclick="F4.check(true)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">B) Aruaques e Caraíbas</button>
+                                        <button onclick="F4.check(false)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">C) Maias e Incas</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F4 = {
+                        arrived: false,
+                        moveShip(e) {
+                            if(this.arrived) return;
+                            const sea = document.getElementById('f4-sea');
+                            const rect = sea.getBoundingClientRect();
+                            const x = e.clientX - rect.left; 
+                            const y = e.clientY - rect.top;
+                            const xPct = (x / rect.width) * 100;
+                            const yPct = (y / rect.height) * 100;
+
+                            const ship = document.getElementById('f4-ship');
+                            ship.style.left = xPct + '%'; 
+                            ship.style.top = yPct + '%';
+                            
+                            // Atualiza Fog of War
+                            const fog = document.getElementById('f4-fog');
+                            fog.style.maskImage = `radial-gradient(circle 200px at ${xPct}% ${yPct}%, transparent 30%, black 100%)`;
+                            fog.style.webkitMaskImage = `radial-gradient(circle 200px at ${xPct}% ${yPct}%, transparent 30%, black 100%)`;
+                            
+                            // Verifica se chegou numa ilha
+                            if (yPct < 70) {
+                                this.arrived = true;
+                                Game.showToast('sucesso', 'Terra à Vista!', 'Você atracou nas ilhas caribenhas.');
+                                setTimeout(() => { 
+                                    document.getElementById('f4-dialog').classList.remove('hidden'); 
+                                    document.getElementById('f4-dialog').classList.add('animate-bounce');
+                                    setTimeout(() => document.getElementById('f4-dialog').classList.remove('animate-bounce'), 1000);
+                                }, 1200);
+                            }
+                        },
+                        check(correct) {
+                            if(correct) Game.completePhase("Correto! Cristóvão Colombo e sua tripulação encontraram os povos Aruaques e Caraíbas ao chegarem às ilhas da América Central em 1492.");
+                            else {
+                                Game.shakeElement('f4-dialog');
+                                Game.showToast('erro', 'Diário Incorreto', 'Lembre-se: os tupis habitavam mais ao sul (Brasil) e Maias/Incas tinham impérios continentais.');
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 5, icon: '🌽', title: 'O Alimento dos Deuses', desc: 'Sincronize o tempo para a colheita asteca.',
+                template: () => `
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Lado Maia (Tempo) -->
+                        <div class="panel-stone p-6 flex flex-col items-center justify-between min-h-[300px]">
+                            <h3 class="font-ancient text-xl text-amber-400 mb-2 border-b border-amber-900 pb-2 w-full text-center">Calendário Maia</h3>
+                            <p class="text-xs text-center text-amber-200 mb-4">Gire a engrenagem até o topo para alinhar a época exata do plantio.</p>
+                            
+                            <div class="relative w-40 h-40 mb-6 flex-shrink-0">
+                                <div id="f5-gear" class="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 stroke=%22%23d4af37%22 stroke-width=%2210%22 fill=%22none%22 stroke-dasharray=%2210 5%22/></svg>')] bg-cover transition-transform duration-100 text-center flex items-center justify-center text-5xl">☀️</div>
+                            </div>
+                            <input type="range" min="0" max="100" value="0" class="w-full accent-amber-500 h-2 bg-black rounded-lg appearance-none cursor-pointer" oninput="F5.rotateGear(this.value)">
+                        </div>
+
+                        <!-- Lado Asteca (Colheita Clicker) -->
+                        <div class="panel-stone p-6 flex flex-col items-center justify-center relative overflow-hidden min-h-[300px]">
+                            <div id="f5-lock" class="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity duration-500">
+                                <span class="text-5xl mb-4 opacity-50">🔒</span>
+                                <p class="text-sm font-bold text-amber-600 uppercase tracking-widest text-center px-4">Alinhe o calendário<br>para liberar o plantio</p>
+                            </div>
+                            
+                            <h3 class="font-ancient text-xl text-amber-400 mb-2 border-b border-amber-900 pb-2 w-full text-center">Preparo Asteca</h3>
+                            <p class="text-xs text-center text-amber-200 mb-6">Qual era o principal alimento? Clique rapidamente para preparar a refeição!</p>
+                            
+                            <div class="flex gap-4 w-full">
+                                <button onclick="F5.wrongFood()" class="flex-1 flex flex-col items-center p-4 bg-stone-900 rounded-xl border border-stone-700 hover:bg-stone-800 transition">
+                                    <span class="text-4xl mb-2">🍠</span>
+                                    <span class="text-xs font-bold text-stone-400">Mandioca</span>
+                                </button>
+                                
+                                <button id="f5-corn-btn" onclick="F5.grindCorn()" class="flex-1 flex flex-col items-center p-4 bg-amber-950 rounded-xl border-2 border-amber-600 hover:bg-amber-900 transition shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                                    <span class="text-4xl mb-2" id="f5-corn-icon">🌽</span>
+                                    <span class="text-xs font-bold text-amber-400">Milho</span>
+                                    
+                                    <!-- Progress Bar Interna -->
+                                    <div class="w-full h-1.5 bg-black rounded-full mt-3 overflow-hidden">
+                                        <div id="f5-corn-progress" class="h-full bg-amber-400 w-0 transition-all duration-100"></div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F5 = {
+                        gearDone: false, cornClicks: 0, requiredClicks: 8,
+                        rotateGear(val) {
+                            document.getElementById('f5-gear').style.transform = `rotate(${val * 3.6}deg)`;
+                            if (val == 100 && !this.gearDone) {
+                                this.gearDone = true;
+                                document.getElementById('f5-lock').style.opacity = '0';
+                                setTimeout(() => document.getElementById('f5-lock').classList.add('hidden'), 500);
+                                Game.showToast('sucesso', 'Tempo Perfeito', 'O alinhamento solar ativou a terra.');
+                            }
+                        },
+                        wrongFood() {
+                            Game.showToast('erro', 'Alimento Incorreto', 'Esse não era a base alimentar dos astecas.');
+                        },
+                        grindCorn() {
+                            this.cornClicks++;
+                            const pct = (this.cornClicks / this.requiredClicks) * 100;
+                            document.getElementById('f5-corn-progress').style.width = `${pct}%`;
+                            
+                            const btn = document.getElementById('f5-corn-btn');
+                            btn.style.transform = 'scale(0.95)';
+                            setTimeout(() => btn.style.transform = 'scale(1)', 50);
+
+                            if (this.cornClicks >= this.requiredClicks) {
+                                document.getElementById('f5-corn-icon').innerText = '🌮'; // Transforma em tortilla
+                                Game.completePhase("Além do calendário, o Milho era a base vital dos astecas, consumido como tortilla ou sopa nas oferendas e refeições.");
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 6, icon: '🪢', title: 'Tributos e o Quipu', desc: 'Registe os impostos exigidos pelo Império Inca.',
+                template: () => `
+                    <div class="panel-stone p-8 max-w-2xl mx-auto text-center relative" id="f6-container">
+                        <div class="absolute top-4 right-4 bg-black/50 px-3 py-1 border border-red-900 rounded-lg">
+                            <span class="text-xs font-bold text-red-500">Alvo: 10 Tributos</span>
+                        </div>
+                        
+                        <h2 class="font-ancient text-3xl text-amber-400 mb-2">6. O Quipu Inca</h2>
+                        <p class="text-sm text-amber-200 mb-8">Todos, desde camponeses a ourives, pagam tributos. Clique nos nós para os adicionar à corda principal e somar exatamente 10.</p>
+                        
+                        <div class="flex justify-center gap-8 mb-10 relative mt-12">
+                            <div class="w-full h-3 bg-[#8b5a2b] absolute top-0 rounded-full shadow-lg z-0"></div> 
+                            
+                            <div class="w-2 h-48 bg-[#a0522d] mt-2 relative flex flex-col items-center gap-4 pt-4 shadow-md rounded-b-full z-10" id="f6-rope-1">
+                                <button onclick="F6.addNode(3, this, 1)" class="w-10 h-10 bg-[#e8a317] rounded-full hover:scale-110 transition-transform shadow-[0_4px_10px_rgba(0,0,0,0.5)] border-4 border-[#b8860b] font-bold text-lg text-black flex items-center justify-center relative z-20">3</button>
+                                <button onclick="F6.addNode(5, this, 1)" class="w-10 h-10 bg-[#c04000] rounded-full hover:scale-110 transition-transform shadow-[0_4px_10px_rgba(0,0,0,0.5)] border-4 border-[#8b3a00] font-bold text-lg text-white flex items-center justify-center relative z-20">5</button>
+                            </div>
+                            
+                            <div class="w-2 h-48 bg-[#a0522d] mt-2 relative flex flex-col items-center gap-4 pt-4 shadow-md rounded-b-full z-10" id="f6-rope-2">
+                                <button onclick="F6.addNode(7, this, 2)" class="w-10 h-10 bg-[#2e8b57] rounded-full hover:scale-110 transition-transform shadow-[0_4px_10px_rgba(0,0,0,0.5)] border-4 border-[#006400] font-bold text-lg text-white flex items-center justify-center relative z-20">7</button>
+                                <button onclick="F6.addNode(2, this, 2)" class="w-10 h-10 bg-[#4682b4] rounded-full hover:scale-110 transition-transform shadow-[0_4px_10px_rgba(0,0,0,0.5)] border-4 border-[#104e8b] font-bold text-lg text-white flex items-center justify-center relative z-20">2</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-black p-5 rounded-2xl inline-block border-2 border-stone-700 shadow-[inset_0_0_20px_rgba(0,0,0,1)] min-w-[200px]">
+                            <span class="text-stone-400 font-bold text-xs uppercase tracking-widest block mb-2">Total Contabilizado</span>
+                            <span id="f6-total" class="text-5xl font-extrabold text-amber-500 font-mono drop-shadow-[0_0_10px_rgba(212,175,55,0.8)]">0</span>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F6 = {
+                        total: 0,
+                        addNode(val, btn, ropeId) {
+                            this.total += val;
+                            const totalEl = document.getElementById('f6-total');
+                            totalEl.innerText = this.total;
+                            
+                            btn.classList.add('opacity-30', 'scale-90', 'pointer-events-none');
+                            totalEl.classList.add('animate-ping');
+                            setTimeout(() => totalEl.classList.remove('animate-ping'), 200);
+                            
+                            if (this.total === 10) {
+                                setTimeout(() => Game.completePhase("O Quipu era o instrumento de contagem Inca utilizado para registar os tributos obrigatórios para toda a população."), 500);
+                            } else if (this.total > 10) {
+                                Game.shakeElement('f6-container');
+                                Game.showToast('erro', 'Matemática Incorreta', 'Excedeu os impostos da província. Recalculando...');
+                                setTimeout(() => Game.startPhase(6), 1500);
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 7, icon: '🏛️', title: 'Sobrevivência na Escola', desc: 'Mantenha a energia e responda ao mestre Escriba.',
+                template: () => `
+                    <div class="panel-stone h-[550px] flex flex-col overflow-hidden relative" id="f7-container">
+                        <div class="absolute inset-0 bg-[url('https://placehold.co/800x500/2c1b12/110a05?text=+')] bg-cover bg-center opacity-40"></div>
+                        
+                        <div class="relative z-10 p-4 bg-black/80 border-b-2 border-amber-900/80 flex justify-between items-center backdrop-blur-sm">
+                            <span class="font-bold text-amber-500 text-sm uppercase tracking-wider">Escola Edubba</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-stone-400">ENERGIA DO ALUNO:</span>
+                                <div class="w-32 h-3 bg-stone-900 rounded-full border border-stone-700 overflow-hidden">
+                                    <div id="f7-hp" class="h-full bg-green-500 transition-all duration-300 w-full"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative z-10 flex-grow flex flex-col justify-end p-6">
+                            <div class="w-32 h-32 bg-gradient-to-b from-amber-800 to-amber-950 rounded-full mx-auto border-4 border-amber-600 shadow-[0_10px_20px_rgba(0,0,0,0.8)] flex items-center justify-center text-6xl relative -bottom-4 z-20">🧓</div>
+                            
+                            <div class="bg-black/90 border-4 border-amber-700/80 rounded-xl p-6 shadow-2xl relative z-10">
+                                <h4 class="font-bold text-amber-500 mb-2 text-xs uppercase tracking-widest border-b border-amber-900/50 pb-2">Mestre Sacerdote diz:</h4>
+                                <p class="text-base text-amber-50 leading-relaxed mb-6 font-medium min-h-[60px]" id="f7-text"></p>
+                                
+                                <div class="grid gap-3" id="f7-choices"></div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F7 = {
+                        hp: 100, stage: 0,
+                        questions: [
+                            {
+                                q: "Pequeno aprendiz, ingressaste aqui aos seis anos de idade. Para te formares aos dezoito, deves dominar muitas artes. O que estudas nas tuas jornadas?",
+                                opts: [
+                                    { t: "Matemática, História, religião e contratos comerciais.", c: true },
+                                    { t: "Apenas caça e leitura para lazer.", c: false }
+                                ]
+                            },
+                            {
+                                q: "Muito bem. Mas diz-me, a profissão de escriba é para todos os cidadãos da Mesopotâmia?",
+                                opts: [
+                                    { t: "Sim, somos a maioria da população.", c: false },
+                                    { t: "Não, somos uma minoria de elite e poucas pessoas dominam a escrita.", c: true }
+                                ]
+                            }
+                        ],
+                        renderQ() {
+                            if (this.stage >= this.questions.length) {
+                                Game.completePhase("O ofício de escriba exigia dedicação dos 6 aos 18 anos, formando a restrita minoria que dominava Matemática, História e contratos comerciais na Mesopotâmia.");
+                                return;
+                            }
+                            const q = this.questions[this.stage];
+                            document.getElementById('f7-text').innerText = `"${q.q}"`;
+                            document.getElementById('f7-choices').innerHTML = q.opts.map((opt) => `
+                                <button onclick="F7.answer(${opt.c})" class="text-left p-4 bg-stone-900 hover:bg-stone-800 border border-stone-600 hover:border-amber-500 rounded-lg text-sm transition-all text-amber-100/90 shadow-md">
+                                    ${opt.t}
+                                </button>
+                            `).join('');
+                        },
+                        answer(isCorrect) {
+                            if(isCorrect) {
+                                Game.showToast('sucesso', 'Mestre Aprovou', 'Resposta sábia.');
+                                this.stage++;
+                                this.renderQ();
+                            } else {
+                                this.hp -= 50;
+                                const hpBar = document.getElementById('f7-hp');
+                                hpBar.style.width = `${this.hp}%`;
+                                Game.shakeElement('f7-container');
+                                
+                                if(this.hp <= 0) {
+                                    hpBar.classList.replace('bg-green-500', 'bg-red-600');
+                                    Game.showToast('erro', 'Exaustão Académica', 'Foste expulso da escola por falhar no conhecimento básico.');
+                                    setTimeout(() => Game.startPhase(7), 2000);
+                                } else {
+                                    hpBar.classList.replace('bg-green-500', 'bg-orange-500');
+                                    Game.showToast('erro', 'Repreensão!', 'Perdeste energia (foco). Pensa bem antes de falar.');
+                                }
+                            }
+                        }
+                    };
+                    F7.renderQ();
+                }
+            },
+
+            {
+                id: 8, icon: '🔦', title: 'Caverna das Origens', desc: 'Mova a luz para encontrar a primeira forma de comunicação.',
+                template: () => `
+                    <div class="panel-stone relative h-[500px] overflow-hidden cursor-none select-none touch-none" id="f8-cave" onmousemove="F8.move(event)" ontouchmove="F8.move(event)">
+                        
+                        <div class="absolute z-30 pointer-events-none top-6 left-0 right-0 text-center bg-black/40 backdrop-blur-sm py-2">
+                            <h2 class="font-ancient text-xl text-amber-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">8. Escuridão do Passado</h2>
+                            <p class="text-xs text-white/90 uppercase tracking-widest mt-1">Ilumine as paredes para encontrar a resposta</p>
+                        </div>
+                        
+                        <div class="absolute inset-0 bg-black z-10 flashlight-mask pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.9)]" id="f8-darkness">
+                            
+                            <div class="absolute inset-0 bg-[#2a1a11] bg-[url('https://placehold.co/1000x600/3e2723/1a120b?text=Rocha+Rupestre')] bg-cover mix-blend-multiply opacity-90"></div>
+                            
+                            <!-- Opções (Escondidas na escuridão) MODIFICADO: CORES CLARAS -->
+                            <div class="absolute top-[25%] left-[15%] z-20 pointer-events-auto">
+                                <button onclick="F8.select(false, this)" class="text-amber-100 bg-black/80 p-4 rounded-xl border border-stone-500 hover:text-red-400 font-ancient text-lg shadow-[0_0_15px_rgba(255,255,255,0.1)]">Canto dos Pássaros</button>
+                            </div>
+                            
+                            <div class="absolute top-[70%] left-[20%] z-20 pointer-events-auto">
+                                <button onclick="F8.select(false, this)" class="text-amber-100 bg-black/80 p-4 rounded-xl border border-stone-500 hover:text-red-400 font-ancient text-lg shadow-[0_0_15px_rgba(255,255,255,0.1)]">Língua de Sinais Atual</button>
+                            </div>
+                            
+                            <div class="absolute top-[45%] left-[60%] z-20 pointer-events-auto">
+                                <button onclick="F8.select(true, this)" class="text-white bg-amber-900/90 p-5 rounded-2xl border-2 border-amber-400 hover:bg-amber-800 hover:scale-105 transition-all shadow-[0_0_30px_rgba(212,175,55,0.5)] font-bold text-center">
+                                    <span class="block text-3xl mb-2">🖐️🐂</span>
+                                    Sinais, Gestos e<br>Pinturas Rupestres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F8 = {
+                        move(e) {
+                            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                            const rect = document.getElementById('f8-cave').getBoundingClientRect();
+                            const x = ((clientX - rect.left) / rect.width) * 100;
+                            const y = ((clientY - rect.top) / rect.height) * 100;
+                            
+                            const darkness = document.getElementById('f8-darkness');
+                            darkness.style.setProperty('--mouse-x', x + '%');
+                            darkness.style.setProperty('--mouse-y', y + '%');
+                        },
+                        select(correct, btn) {
+                            if(correct) {
+                                document.getElementById('f8-darkness').style.clipPath = 'circle(150% at 50% 50%)'; 
+                                document.getElementById('f8-darkness').style.transition = 'clip-path 1.5s ease-out';
+                                setTimeout(() => Game.completePhase("Muito antes da escrita, a primeira forma de comunicação do ser humano envolvia sinais, gestos e as famosas pinturas rupestres."), 1000);
+                            }
+                            else {
+                                Game.showToast('erro', 'Falso Vestígio', 'Esta não foi a primeira forma de comunicação.');
+                                btn.classList.add('opacity-0');
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 9, icon: '⌨️', title: 'O Enigma de FARAO', desc: 'Introduza a palavra através do teclado fonético egípcio.',
+                template: () => `
+                    <div class="panel-stone p-8 flex flex-col items-center">
+                        <h2 class="font-ancient text-3xl text-amber-400 mb-2">9. Tradutor de Hieróglifos</h2>
+                        <p class="text-sm mb-8 text-center text-amber-100 max-w-md">Para abrir a câmara secreta, escreva <strong class="text-white text-lg tracking-widest bg-amber-900/50 px-2 rounded border border-amber-500">FARAO</strong> usando as representações de som corretas.</p>
+                        
+                        <div class="bg-black p-5 rounded-2xl border-4 border-[#8b6508] mb-10 w-full max-w-md flex justify-center gap-2 shadow-[inset_0_0_30px_rgba(0,0,0,1)] relative" id="f9-slots">
+                            <div class="w-12 h-16 border-b-4 border-stone-600"></div>
+                            <div class="w-12 h-16 border-b-4 border-stone-600"></div>
+                            <div class="w-12 h-16 border-b-4 border-stone-600"></div>
+                            <div class="w-12 h-16 border-b-4 border-stone-600"></div>
+                            <div class="w-12 h-16 border-b-4 border-stone-600"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 md:grid-cols-5 gap-3 max-w-2xl bg-[#f4ebd8] p-6 rounded-2xl border-4 border-[#c2b280] shadow-2xl">
+                            ${[
+                                {l: 'F', s: '🪶'}, {l: 'A', s: '🦅'}, {l: 'R', s: '🦁'}, 
+                                {l: 'O', s: '👁️'}, {l: 'S', s: '🐍'}, {l: 'M', s: '🦉'}
+                            ].map(k => `
+                                <button onclick="F9.type('${k.l}', '${k.s}', this)" class="p-3 bg-[#e8d5a7] rounded-lg border-b-4 border-[#c2b280] hover:bg-[#d8c597] active:border-b-0 active:translate-y-1 flex flex-col items-center justify-center transition-all">
+                                    <span class="text-3xl drop-shadow-md">${k.s}</span>
+                                    <span class="text-[10px] mt-1 font-bold text-stone-600">${k.l}</span>
+                                </button>
+                            `).join('')}
+                            
+                            <button onclick="F9.backspace()" class="col-span-3 md:col-span-5 mt-2 p-3 bg-red-900/20 text-red-700 border-2 border-red-800/30 rounded-lg hover:bg-red-900/30 font-bold text-sm flex items-center justify-center gap-2">
+                                <span>⌫</span> Apagar Letra
+                            </button>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F9 = {
+                        word: "", target: "FARAO", symbols: [],
+                        type(letter, symbol, btn) {
+                            if(this.word.length >= 5) return;
+                            
+                            btn.classList.add('bg-[#c2b280]');
+                            setTimeout(() => btn.classList.remove('bg-[#c2b280]'), 150);
+
+                            this.word += letter;
+                            this.symbols.push(symbol);
+                            this.renderDisplay();
+                            
+                            if(this.word.length === 5) {
+                                if(this.word === this.target) {
+                                    setTimeout(() => Game.completePhase("Perfeito! A escrita egípcia usava hieróglifos para representar tanto sons fonéticos (como as letras de um nome) quanto conceitos abstratos."), 800);
+                                } else {
+                                    Game.shakeElement('f9-slots');
+                                    Game.showToast('erro', 'Acesso Negado', 'Combinação incorreta.');
+                                }
+                            }
+                        },
+                        backspace() {
+                            if (this.word.length === 0) return;
+                            this.word = this.word.slice(0, -1);
+                            this.symbols.pop();
+                            this.renderDisplay();
+                        },
+                        renderDisplay() {
+                            const container = document.getElementById('f9-slots');
+                            container.innerHTML = '';
+                            for(let i=0; i<5; i++) {
+                                const sym = this.symbols[i] || '';
+                                /* MODIFICADO: Cores claras ao inserir o hieróglifo (Amarelo brilhante) */
+                                container.innerHTML += `
+                                    <div class="w-12 h-16 border-b-4 ${sym ? 'border-amber-400 text-amber-200' : 'border-stone-600'} flex items-center justify-center text-4xl transition-colors duration-300 drop-shadow-md">
+                                        <span class="${sym ? 'animate-bounce' : ''}" style="animation-iteration-count: 1;">${sym}</span>
+                                    </div>
+                                `;
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 10, icon: '🧠', title: 'Empatia e Memória', desc: 'Desvende os pares temporizados sobre inclusão e Libras.',
+                template: () => `
+                    <div class="panel-stone p-6 relative">
+                        <div class="absolute top-4 right-6 bg-black/60 px-4 py-2 rounded-xl border border-amber-900/50 flex items-center gap-2">
+                            <span class="text-xl">⏱️</span>
+                            <span id="f10-timer" class="font-mono text-xl text-amber-400 font-bold">60s</span>
+                        </div>
+                        
+                        <h2 class="font-ancient text-2xl text-amber-400 mb-2">10. Conexões Cidadãs</h2>
+                        <p class="text-sm mb-8 text-amber-200/80 max-w-md">Memorize e forme os pares que definem a importância da Libras antes que o tempo acabe.</p>
+                        
+                        <div class="grid grid-cols-4 gap-4 max-w-lg mx-auto perspective-1000" id="f10-grid"></div>
+                    </div>
+                `,
+                init: () => {
+                    window.F10 = {
+                        cards: [
+                            {id: 1, val: '2002'}, {id: 1, val: 'Ano da Lei'},
+                            {id: 2, val: 'Libras'}, {id: 2, val: 'Língua Materna'},
+                            {id: 3, val: 'Direito'}, {id: 3, val: 'Estudar e Trabalhar'},
+                            {id: 4, val: 'Respeito'}, {id: 4, val: 'Sociedade Justa'}
+                        ],
+                        flipped: [], matched: 0, time: 60, interval: null, lock: false,
+                        setup() {
+                            this.cards.sort(() => Math.random() - 0.5);
+                            const grid = document.getElementById('f10-grid');
+                            grid.innerHTML = this.cards.map((c, i) => `
+                                <div class="card-memory w-full aspect-square relative" onclick="F10.flip(${i}, ${c.id}, this)">
+                                    <div class="card-inner w-full h-full relative">
+                                        <div class="card-face bg-[url('https://placehold.co/100x100/3d2b1f/1a120b?text=+')] border-2 border-stone-600 rounded-xl shadow-lg flex items-center justify-center bg-cover hover:border-amber-500 transition-colors">
+                                            <div class="w-8 h-8 bg-black/40 rounded-full flex items-center justify-center border border-amber-900/50 text-xs">👁️</div>
+                                        </div>
+                                        <div class="card-face card-back bg-gradient-to-br from-amber-800 to-amber-950 border-2 border-amber-400 rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.4)] flex flex-col items-center justify-center p-2 text-center text-white">
+                                            <span class="text-[10px] md:text-xs font-extrabold leading-tight drop-shadow-md">${c.val}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+                            
+                            this.interval = setInterval(() => {
+                                this.time--;
+                                document.getElementById('f10-timer').innerText = this.time + 's';
+                                if(this.time <= 0) {
+                                    clearInterval(this.interval);
+                                    Game.showToast('erro', 'Tempo Esgotado', 'Reiniciando o desafio cognitivo.');
+                                    setTimeout(() => Game.startPhase(10), 2000);
+                                }
+                            }, 1000);
+                        },
+                        flip(index, id, el) {
+                            if(this.lock || this.flipped.length >= 2 || el.classList.contains('flipped')) return;
+                            el.classList.add('flipped');
+                            this.flipped.push({el, id});
+                            
+                            if(this.flipped.length === 2) {
+                                this.lock = true;
+                                setTimeout(() => this.checkMatch(), 1000);
+                            }
+                        },
+                        checkMatch() {
+                            if(this.flipped[0].id === this.flipped[1].id) {
+                                this.matched++;
+                                this.flipped[0].el.querySelector('.card-back').classList.add('border-green-500', 'from-green-800', 'to-green-950');
+                                this.flipped[1].el.querySelector('.card-back').classList.add('border-green-500', 'from-green-800', 'to-green-950');
+                                
+                                if(this.matched === 4) {
+                                    clearInterval(this.interval);
+                                    setTimeout(() => Game.completePhase("Quando a sociedade respeita a Libras (oficializada em 2002), constrói-se um ambiente mais justo onde a pessoa surda pode exercer sua plena cidadania."), 500);
+                                }
+                            } else {
+                                this.flipped[0].el.classList.remove('flipped');
+                                this.flipped[1].el.classList.remove('flipped');
+                            }
+                            this.flipped = [];
+                            this.lock = false;
+                        }
+                    };
+                    F10.setup();
+                }
+            },
+
+            {
+                id: 11, icon: '📜', title: 'Limpeza de Papiro', desc: 'Pressione o texto manchado para revelar os habitantes nativos.',
+                template: () => `
+                    <div class="panel-stone p-8 text-center bg-[#e8d5a7] text-stone-900 border-8 border-[#8b6508] relative shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] h-[450px] flex flex-col justify-center">
+                        <h2 class="font-ancient text-3xl text-[#5c3a21] mb-2 font-bold drop-shadow-sm">11. Diário de 1492</h2>
+                        <p class="text-xs mb-8 text-[#8b6508] font-bold uppercase tracking-widest">Mantenha o botão premido sobre a sujidade para a limpar.</p>
+                        
+                        <div class="max-w-md mx-auto text-left font-serif text-lg leading-relaxed border-t-2 border-b-2 border-[#8b6508]/40 py-8 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect width=%22100%22 height=%22100%22 fill=%22%23e8d5a7%22/><path d=%22M0 0h10v10H0zm10 10h10v10H10z%22 fill=%22%23d8c597%22 fill-opacity=%220.3%22/></svg>')] relative shadow-inner px-6 rounded">
+                            "Após longa viagem, desembarcámos nestas ilhas caribenhas. O povo aqui é pacífico. Hoje fizemos contacto direto com os nativos conhecidos como
+                            
+                            <span class="inline-block relative cursor-pointer group mx-1 select-none touch-none" 
+                                  onmousedown="F11.startHold(1, 'Aruaques')" onmouseup="F11.stopHold()" onmouseleave="F11.stopHold()"
+                                  ontouchstart="F11.startHold(1, 'Aruaques')" ontouchend="F11.stopHold()">
+                                <!-- MODIFICADO: Fundo mais nítido para esconder, mas quando revelar vira Branco brilhante no fundo escuro -->
+                                <span class="bg-[#5c3a21] text-transparent rounded px-2 transition-all" id="f11-word-1">XXXXXXXX</span>
+                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 w-16 h-1 bg-stone-300 rounded mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div class="h-full bg-[#8b6508] w-0 rounded" id="f11-bar-1"></div>
+                                </div>
+                            </span>
+                            
+                            e alertaram-nos sobre guerreiros ferozes nas ilhas vizinhas, chamados
+                            
+                            <span class="inline-block relative cursor-pointer group mx-1 select-none touch-none" 
+                                  onmousedown="F11.startHold(2, 'Caraíbas')" onmouseup="F11.stopHold()" onmouseleave="F11.stopHold()"
+                                  ontouchstart="F11.startHold(2, 'Caraíbas')" ontouchend="F11.stopHold()">
+                                <span class="bg-[#5c3a21] text-transparent rounded px-2 transition-all" id="f11-word-2">XXXXXXXX</span>
+                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 w-16 h-1 bg-stone-300 rounded mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div class="h-full bg-[#8b6508] w-0 rounded" id="f11-bar-2"></div>
+                                </div>
+                            </span>."
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F11 = {
+                        found: 0, holdTimer: null, currentId: null, progress: 0, completed: [false, false, false],
+                        startHold(id, realWord) {
+                            if(this.completed[id]) return;
+                            this.currentId = id;
+                            this.progress = 0;
+                            document.getElementById(`f11-word-${id}`).classList.add('animate-pulse');
+                            
+                            this.holdTimer = setInterval(() => {
+                                this.progress += 5;
+                                document.getElementById(`f11-bar-${id}`).style.width = this.progress + '%';
+                                
+                                if (this.progress >= 100) {
+                                    this.finishWord(id, realWord);
+                                }
+                            }, 50);
+                        },
+                        stopHold() {
+                            clearInterval(this.holdTimer);
+                            if(this.currentId && !this.completed[this.currentId]) {
+                                document.getElementById(`f11-bar-${this.currentId}`).style.width = '0%';
+                                document.getElementById(`f11-word-${this.currentId}`).classList.remove('animate-pulse');
+                            }
+                            this.currentId = null;
+                        },
+                        finishWord(id, realWord) {
+                            this.stopHold();
+                            this.completed[id] = true;
+                            
+                            const el = document.getElementById(`f11-word-${id}`);
+                            // MODIFICADO: Remove as classes que ocultam e adiciona fundo escuro com cor branca brilhante para o texto.
+                            el.classList.remove('bg-[#5c3a21]', 'text-transparent', 'animate-pulse');
+                            el.classList.add('text-amber-100', 'bg-amber-950', 'font-bold', 'border-2', 'border-amber-400', 'shadow-[0_0_15px_#d4af37]', 'tracking-wide');
+                            el.innerText = realWord;
+                            
+                            Game.showToast('sucesso', 'Palavra Revelada', 'O papiro foi limpo com sucesso.');
+                            
+                            this.found++;
+                            if (this.found === 2) {
+                                setTimeout(() => Game.completePhase("Cristóvão Colombo encontrou primariamente os Aruaques e Caraíbas nas ilhas do Caribe em 1492."), 1200);
+                            }
+                        }
+                    };
+                }
+            },
+
+            {
+                id: 12, icon: '🔥', title: 'Fogo Asteca', desc: 'Alimente o fogo sagrado batendo repetidamente.',
+                template: () => `
+                    <div class="panel-stone p-6 flex flex-col items-center">
+                        <div class="w-full flex justify-between items-center mb-6">
+                            <h2 class="font-ancient text-xl text-amber-400">12. Ritual Asteca</h2>
+                            <div class="flex items-center gap-2 bg-red-950/50 px-3 py-1 rounded-full border border-red-900">
+                                <span class="text-xs font-bold text-red-500">MANTENHA VIVO</span>
+                                <div class="w-16 h-2 bg-black rounded-full overflow-hidden">
+                                    <div id="f12-fire-hp" class="w-[50%] h-full bg-gradient-to-r from-orange-600 to-yellow-400 transition-all duration-300"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-center mb-8 text-amber-100 max-w-sm">A fertilidade da terra dependia da devoção e da culinária asteca. Clique no ingrediente base para alimentar o fogo ritualístico!</p>
+                        
+                        <div class="relative w-48 h-48 flex items-center justify-center">
+                            <div id="f12-flame-visual" class="absolute inset-0 bg-[radial-gradient(circle,rgba(255,100,0,0.5)_0%,transparent_70%)] rounded-full animate-pulse blur-md transition-transform duration-500 transform scale-50"></div>
+                            
+                            <button onclick="F12.feed()" class="relative z-10 w-24 h-24 bg-gradient-to-br from-amber-600 to-amber-900 rounded-full border-4 border-amber-400 shadow-[0_0_30px_rgba(212,175,55,0.6)] flex items-center justify-center text-5xl hover:scale-105 active:scale-95 transition-transform" id="f12-btn">
+                                🌽
+                            </button>
+                        </div>
+                        
+                        <div class="mt-8 bg-black/40 p-4 rounded-xl border border-amber-900/50 text-center w-full max-w-md">
+                            <span class="text-xs text-amber-500 font-bold uppercase tracking-widest block mb-2">Refeições Consagradas</span>
+                            <div class="flex gap-1 h-3" id="f12-offerings"></div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F12 = {
+                        hp: 50, offerings: 0, maxOfferings: 10, drainInterval: null,
+                        setup() {
+                            const offContainer = document.getElementById('f12-offerings');
+                            offContainer.innerHTML = '';
+                            for(let i=0; i<this.maxOfferings; i++) {
+                                offContainer.innerHTML += `<div class="flex-1 bg-stone-800 rounded-sm transition-colors duration-300" id="f12-off-${i}"></div>`;
+                            }
+                            
+                            this.drainInterval = setInterval(() => {
+                                this.hp -= 2;
+                                this.updateUI();
+                                if(this.hp <= 0) {
+                                    clearInterval(this.drainInterval);
+                                    Game.showToast('erro', 'A Chama Apagou', 'As colheitas falharam. Seja mais rápido.');
+                                    setTimeout(() => Game.startPhase(12), 2000);
+                                }
+                            }, 200);
+                        },
+                        feed() {
+                            this.hp = Math.min(this.hp + 15, 100);
+                            this.updateUI();
+                            
+                            if (this.hp > 80 && this.offerings < this.maxOfferings) {
+                                document.getElementById(`f12-off-${this.offerings}`).classList.replace('bg-stone-800', 'bg-green-500');
+                                this.offerings++;
+                                
+                                const btn = document.getElementById('f12-btn');
+                                btn.classList.add('shadow-[0_0_60px_rgba(255,255,255,0.8)]');
+                                setTimeout(() => btn.classList.remove('shadow-[0_0_60px_rgba(255,255,255,0.8)]'), 200);
+                                
+                                if (this.offerings >= this.maxOfferings) {
+                                    clearInterval(this.drainInterval);
+                                    setTimeout(() => Game.completePhase("Para garantir a fartura, os astecas relacionavam seus alimentos (especialmente o Milho) aos deuses. Era consumido constantemente (tortillas, sopas) o dia todo."), 500);
+                                }
+                            }
+                        },
+                        updateUI() {
+                            document.getElementById('f12-fire-hp').style.width = this.hp + '%';
+                            const scale = 0.5 + (this.hp / 100);
+                            document.getElementById('f12-flame-visual').style.transform = `scale(${scale})`;
+                        }
+                    };
+                    F12.setup();
+                }
+            },
+
+            {
+                id: 13, icon: '🏔️', title: 'Resistência Andina', desc: 'Caminhe rapidamente para chegar à Cidade das Nuvens.',
+                template: () => `
+                    <div class="panel-stone p-6 flex flex-col items-center">
+                        <h2 class="font-ancient text-2xl text-amber-400 mb-2">13. A Trilha Inca</h2>
+                        <p class="text-sm mb-6 text-amber-100/80 text-center">Simule os 48km de trajeto a pé até Machu Picchu. <strong>Clique rapidamente para andar antes de cansar.</strong></p>
+                        
+                        <div class="w-full max-w-lg mb-8 relative">
+                            <div class="h-40 bg-[url('https://placehold.co/600x200/2c3e50/1a252f?text=Cordilheira+dos+Andes')] bg-cover bg-bottom rounded-xl border-4 border-stone-700 relative overflow-hidden mb-4 shadow-[inset_0_-20px_20px_rgba(0,0,0,0.5)]">
+                                <div id="f13-avatar" class="absolute bottom-2 left-0 text-4xl transition-all duration-100 ease-out z-20">🧗</div>
+                                <div class="absolute bottom-2 right-4 text-4xl opacity-80 z-10">🏛️</div>
+                            </div>
+                            
+                            <div class="flex justify-between text-[10px] font-bold text-amber-500 mb-1">
+                                <span>Cusco (0 km)</span>
+                                <span>Machu Picchu (48 km)</span>
+                            </div>
+                            <div class="w-full h-4 bg-stone-900 rounded-full overflow-hidden border border-stone-600">
+                                <div id="f13-dist-bar" class="h-full bg-blue-600 w-0 transition-all duration-100"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="F13.walk()" class="w-full max-w-xs py-4 bg-gradient-to-b from-green-600 to-green-800 rounded-2xl font-bold text-xl border-b-8 border-green-950 active:border-b-0 active:translate-y-2 transition-all shadow-[0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2 select-none">
+                            <span>👣</span> DAR UM PASSO
+                        </button>
+                        
+                        <div id="f13-ending" class="hidden fixed inset-0 z-50 bg-black/90 p-6 flex items-center justify-center backdrop-blur-md">
+                            <div class="bg-stone-900 p-8 rounded-2xl border border-red-700/50 max-w-md text-center">
+                                <span class="text-5xl mb-4 block animate-bounce">🏛️</span>
+                                <h3 class="font-bold text-red-500 text-xl mb-4">Destino Alcançado</h3>
+                                <p class="text-sm text-amber-100 mb-6 leading-relaxed">Milhares de turistas fazem isto diariamente. O excesso de visitantes causou impactos estruturais graves à cidade em 2019.</p>
+                                <button onclick="F13.finish()" class="btn-gold px-8 py-3 rounded-xl shadow-lg w-full">Compreendi o Impacto ➔</button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F13 = {
+                        dist: 0, maxDist: 100, interval: null, ended: false,
+                        setup() {
+                            this.interval = setInterval(() => {
+                                if(this.ended) return;
+                                if(this.dist > 0) this.dist -= 0.5;
+                                this.updateUI();
+                            }, 100);
+                        },
+                        walk() {
+                            if(this.ended) return;
+                            this.dist += 4;
+                            this.updateUI();
+                            
+                            const avatar = document.getElementById('f13-avatar');
+                            avatar.style.transform = `rotate(${Math.random() > 0.5 ? 15 : -15}deg)`;
+                            setTimeout(() => avatar.style.transform = 'rotate(0deg)', 50);
+
+                            if(this.dist >= this.maxDist) {
+                                this.ended = true;
+                                clearInterval(this.interval);
+                                document.getElementById('f13-ending').classList.remove('hidden');
+                            }
+                        },
+                        updateUI() {
+                            const pct = Math.min((this.dist / this.maxDist) * 100, 100);
+                            document.getElementById('f13-dist-bar').style.width = pct + '%';
+                            document.getElementById('f13-avatar').style.left = `calc(${pct}% - 30px)`;
+                        },
+                        finish() {
+                            Game.completePhase("Para chegar à 'cidade das nuvens', pode-se caminhar cerca de 48 km (4 dias e 3 noites). Contudo, este turismo massivo forçou o encerramento para restauros estruturais.");
+                        }
+                    };
+                    F13.setup();
+                }
+            },
+
+            {
+                id: 14, icon: '⚖️', title: 'O Tesouro Sagrado', desc: 'Envie o Ouro e a Prata para os altares celestiais corretos.',
+                template: () => `
+                    <div class="panel-stone p-8 max-w-2xl mx-auto flex flex-col items-center">
+                        <h2 class="font-ancient text-3xl text-amber-400 mb-2">14. Metalurgia Inca</h2>
+                        <p class="text-sm mb-10 text-center text-amber-200/80">Na economia Inca, o ouro e a prata não eram dinheiro (eles usavam escambo). Eram símbolos sagrados. Selecione o metal e envie-o para a divindade correspondente.</p>
+                        
+                        <div class="flex justify-between w-full mb-12 gap-4">
+                            <button onclick="F14.dropTo('sun')" id="f14-altar-sun" class="flex-1 h-40 border-4 border-dashed border-amber-500/50 hover:border-amber-400 hover:bg-amber-900/30 rounded-2xl flex flex-col items-center justify-center p-4 transition-all">
+                                <span class="text-5xl mb-2 filter drop-shadow-[0_0_10px_rgba(255,200,0,0.8)] animate-pulse">☀️</span>
+                                <span class="text-xs font-bold text-amber-400 uppercase tracking-widest text-center">Deus Sol<br>(Inti)</span>
+                            </button>
+                            
+                            <button onclick="F14.dropTo('moon')" id="f14-altar-moon" class="flex-1 h-40 border-4 border-dashed border-slate-400/50 hover:border-slate-300 hover:bg-slate-800/50 rounded-2xl flex flex-col items-center justify-center p-4 transition-all">
+                                <span class="text-5xl mb-2 filter drop-shadow-[0_0_10px_rgba(200,200,255,0.6)]">🌙</span>
+                                <span class="text-xs font-bold text-slate-300 uppercase tracking-widest text-center">Deusa Lua<br>(Mama Quilla)</span>
+                            </button>
+                        </div>
+
+                        <div class="bg-black/60 p-6 rounded-3xl border border-stone-700 flex justify-center gap-6 shadow-[0_10px_30px_rgba(0,0,0,0.8)] w-full relative">
+                            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-stone-800 px-3 py-1 rounded-full text-[10px] font-bold text-stone-400 border border-stone-600">SELECIONE O METAL</div>
+                            
+                            <button onclick="F14.select('gold', this)" id="f14-item-gold" class="w-24 h-24 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full shadow-[0_0_20px_rgba(255,215,0,0.5)] border-4 border-yellow-700 flex items-center justify-center font-bold text-black text-lg transform hover:scale-110 focus:ring-4 focus:ring-amber-200 transition-all">
+                                Ouro
+                            </button>
+                            
+                            <button onclick="F14.select('silver', this)" id="f14-item-silver" class="w-24 h-24 bg-gradient-to-br from-slate-200 to-slate-400 rounded-full shadow-[0_0_20px_rgba(200,200,200,0.5)] border-4 border-slate-500 flex items-center justify-center font-bold text-black text-lg transform hover:scale-110 focus:ring-4 focus:ring-slate-100 transition-all">
+                                Prata
+                            </button>
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F14 = {
+                        selected: null,
+                        completed: 0,
+                        select(type, btn) {
+                            document.getElementById('f14-item-gold').classList.remove('ring-4', 'ring-amber-200', 'scale-110');
+                            document.getElementById('f14-item-silver').classList.remove('ring-4', 'ring-slate-100', 'scale-110');
+                            
+                            this.selected = type;
+                            btn.classList.add(type === 'gold' ? 'ring-4' : 'ring-4', type === 'gold' ? 'ring-amber-200' : 'ring-slate-100', 'scale-110');
+                        },
+                        dropTo(altar) {
+                            if (!this.selected) {
+                                Game.showToast('erro', 'Aviso', 'Selecione um metal precioso primeiro.');
+                                return;
+                            }
+                            
+                            if ((this.selected === 'gold' && altar === 'sun') || (this.selected === 'silver' && altar === 'moon')) {
+                                const itemBtn = document.getElementById(`f14-item-${this.selected}`);
+                                const altarBtn = document.getElementById(`f14-altar-${altar}`);
+                                
+                                itemBtn.classList.add('opacity-0', 'scale-0');
+                                setTimeout(() => itemBtn.classList.add('hidden'), 300);
+                                
+                                altarBtn.classList.replace('border-dashed', 'border-solid');
+                                altarBtn.classList.add(altar === 'sun' ? 'border-amber-400' : 'border-slate-300');
+                                altarBtn.innerHTML += `<div class="absolute bottom-2 bg-black/60 px-2 py-1 rounded text-[10px] font-bold ${altar === 'sun' ? 'text-yellow-400' : 'text-slate-200'} border border-stone-600">Consagrado</div>`;
+                                
+                                this.selected = null;
+                                this.completed++;
+                                Game.showToast('sucesso', 'Oferenda Aceite', altar === 'sun' ? 'O Suor do Sol regressa à luz.' : 'As Lágrimas da Lua encontram descanso.');
+                                
+                                if (this.completed === 2) {
+                                    setTimeout(() => Game.completePhase("Para a civilização Inca, a economia funcionava por escambo (troca). Os metais não compravam coisas: o ouro era visto como o 'suor do Sol' e a prata como 'lágrimas da Lua'."), 1500);
+                                }
+                            } else {
+                                Game.showToast('erro', 'Oferenda Rejeitada', 'O metal não pertence a esta divindade!');
+                                Game.shakeElement(`f14-altar-${altar}`);
+                            }
+                        }
+                    };
+                }
+            },
+            
+            // ==========================================
+            // FASE 15: A CÂMARA SECRETA (AVALIAÇÃO FINAL)
+            // ==========================================
+            {
+                id: 15, icon: '🗝️', title: 'A Câmara Secreta', desc: 'O Teste Final dos Deuses. Prove sua sabedoria.',
+                template: () => `
+                    <div class="panel-stone h-[600px] flex flex-col overflow-hidden relative shadow-[0_0_50px_rgba(212,175,55,0.2)] border-amber-500/50" id="f15-container">
+                        <!-- Fundo Místico -->
+                        <div class="absolute inset-0 bg-[url('https://placehold.co/800x600/110a05/2c241b?text=+')] bg-cover bg-center opacity-60"></div>
+                        <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/95"></div>
+                        
+                        <!-- Header do Boss -->
+                        <div class="relative z-10 p-4 border-b-2 border-amber-500/30 flex justify-between items-center bg-black/50 backdrop-blur-md">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl animate-pulse">👑</span>
+                                <div>
+                                    <h3 class="font-ancient text-amber-400 font-bold text-lg">Julgamento Final</h3>
+                                    <p class="text-[10px] text-amber-200 uppercase tracking-widest" id="f15-progress-text">Questão 1 de 7</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 bg-red-950/40 px-3 py-1.5 rounded-xl border border-red-900/50">
+                                <span class="text-[10px] font-bold text-red-400 mr-1">VIDAS:</span>
+                                <div class="flex gap-1 text-lg" id="f15-hearts">
+                                    <span>❤️</span><span>❤️</span><span>❤️</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Área da Questão -->
+                        <div class="relative z-10 flex-grow flex flex-col items-center justify-center p-6 w-full max-w-3xl mx-auto">
+                            
+                            <div class="bg-black/80 border border-amber-700 rounded-2xl p-6 w-full shadow-2xl relative backdrop-blur-sm" id="f15-card">
+                                <!-- Barra de progresso top -->
+                                <div class="absolute top-0 left-0 h-1 bg-amber-500 rounded-t-2xl transition-all duration-300" id="f15-bar" style="width: 14%;"></div>
+                                
+                                <p class="text-lg md:text-xl text-amber-50 leading-relaxed font-medium mb-8 mt-2" id="f15-q-text">
+                                    Carregando o pergaminho...
+                                </p>
+                                
+                                <div class="grid grid-cols-1 gap-3 w-full" id="f15-options">
+                                    <!-- Options Injected Here -->
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                `,
+                init: () => {
+                    window.F15 = {
+                        stage: 0,
+                        lives: 3,
+                        questions: [
+                            {
+                                // Adaptado da Q1 e Q2 (Mesopotâmia e Escola)
+                                q: "Um antigo papiro afirma: 'Os escribas estudavam por pouco tempo, liam por puro lazer e usavam papel em todos os seus registros'. Como um mestre historiador corrige essa afirmação?",
+                                opts: [
+                                    { t: "Os escribas estudavam por muitos anos (dos 6 aos 18) e gravavam em tabuletas de argila úmida estritamente para fins econômicos e administrativos.", c: true },
+                                    { t: "Eles realmente usavam papel, mas apenas para desenhar pinturas rupestres comerciais.", c: false },
+                                    { t: "A escrita era cuneiforme, mas eles não precisavam saber ler ou escrever matemática.", c: false }
+                                ]
+                            },
+                            {
+                                // Adaptado da Q3 (Libras)
+                                q: "Sobre a história dos direitos e da cidadania no Brasil, por que é fundamental que as pessoas ouvintes conheçam e respeitem a Libras (oficializada em 2002)?",
+                                opts: [
+                                    { t: "Porque a Libras é superior ao Português em termos de comunicação internacional.", c: false },
+                                    { t: "Para garantir que a comunidade surda não precise frequentar escolas.", c: false },
+                                    { t: "Porque ajuda a construir uma sociedade mais justa e unida, garantindo o direito da comunidade surda de se expressar, estudar e trabalhar plenamente.", c: true }
+                                ]
+                            },
+                            {
+                                // Adaptado da Q4 (Egito)
+                                q: "No Antigo Egito, os sacerdotes decoravam os túmulos dos faraós com uma escrita complexa. O que os símbolos egípcios (hieróglifos) significavam?",
+                                opts: [
+                                    { t: "Representavam tanto sons fonéticos (como letras) quanto conceitos inteiros e ideias abstratas.", c: true },
+                                    { t: "Eram apenas letras do alfabeto ocidental desenhadas como animais.", c: false },
+                                    { t: "Serviam exclusivamente como números para contabilizar a construção das pirâmides.", c: false }
+                                ]
+                            },
+                            {
+                                // Adaptado da Q6 (Colombo)
+                                q: "Quando o navegador Cristóvão Colombo atracou no continente americano (América Central) em 1492, ele encontrou populações nativas específicas. Quais foram os principais povos encontrados nas ilhas?",
+                                opts: [
+                                    { t: "Tupis e Guaranis, que dominavam a costa brasileira.", c: false },
+                                    { t: "Os pacíficos Aruaques e os temidos guerreiros Caraíbas.", c: true },
+                                    { t: "Maias e Astecas, que possuíam impérios naquelas ilhas.", c: false }
+                                ]
+                            },
+                            {
+                                // Adaptado da Q7 (Maias)
+                                q: "Além de excelentes matemáticos, os Maias criaram um importante instrumento de medida do tempo. Qual era a função primordial do Calendário Maia?",
+                                opts: [
+                                    { t: "Funcionava como um relógio de sol para marcar jogos diários.", c: false },
+                                    { t: "Era usado exclusivamente para prever eclipses e assustar inimigos.", c: false },
+                                    { t: "Além de contar os dias, regulava rigorosamente as festas religiosas e as épocas de plantio e colheita.", c: true }
+                                ]
+                            },
+                            {
+                                // Adaptado da Q8 (Astecas)
+                                q: "A dieta dos povos antigos era ligada à sua devoção religiosa para garantir a fertilidade das terras. Qual era o alimento sagrado que servia de base para quase todas as refeições do povo Asteca?",
+                                opts: [
+                                    { t: "O Milho, consumido constantemente em formas de tortilla (panqueca) e sopa.", c: true },
+                                    { t: "A Batata, consumida com ovos pela manhã e arroz à tarde.", c: false },
+                                    { t: "A Mandioca, transformada em bolos e consumida frita.", c: false }
+                                ]
+                            },
+                            {
+                                // Adaptado da Q10 (Incas)
+                                q: "Você chegou à Cordilheira dos Andes. Avalie as afirmações sobre o império Dourado dos Incas e identifique a ÚNICA alternativa MENTIROSA:",
+                                opts: [
+                                    { t: "Todas as pessoas deviam pagar tributos ao império, desde camponeses até ourives.", c: false },
+                                    { t: "A metalurgia do ouro servia como dinheiro (moeda) para eles negociarem com outras cidades.", c: true }, // This is the lie
+                                    { t: "Para os incas, o ouro era considerado o suor do Sol e a prata as lágrimas da Lua.", c: false }
+                                ]
+                            }
+                        ],
+                        
+                        renderQ() {
+                            if (this.stage >= this.questions.length) {
+                                // Ganhou tudo
+                                Game.completePhase("Parabéns Mestre! Você dominou a economia mesopotâmica, a escrita hieroglífica, a cidadania através da Libras, os contatos coloniais de 1492 e a riqueza cultural dos Maias, Astecas e Incas. Você desvendou a Antiguidade!");
+                                return;
+                            }
+                            
+                            const q = this.questions[this.stage];
+                            const pct = ((this.stage + 1) / this.questions.length) * 100;
+                            
+                            document.getElementById('f15-progress-text').innerText = `Questão ${this.stage + 1} de ${this.questions.length}`;
+                            document.getElementById('f15-bar').style.width = `${pct}%`;
+                            
+                            // Efeito visual de troca
+                            const card = document.getElementById('f15-card');
+                            card.classList.remove('animate-fade-in-up');
+                            void card.offsetWidth;
+                            card.classList.add('animate-fade-in-up');
+
+                            document.getElementById('f15-q-text').innerText = q.q;
+                            
+                            // Embaralha as opções
+                            const shuffledOpts = [...q.opts].sort(() => Math.random() - 0.5);
+                            
+                            document.getElementById('f15-options').innerHTML = shuffledOpts.map((opt, index) => `
+                                <button onclick="F15.answer(${opt.c}, this)" class="text-left w-full p-4 bg-stone-900/80 hover:bg-amber-900/40 border-2 border-stone-700 hover:border-amber-500 rounded-xl text-sm transition-all text-amber-50 shadow-md">
+                                    ${opt.t}
+                                </button>
+                            `).join('');
+                        },
+                        
+                        answer(isCorrect, btn) {
+                            // Bloqueia múltiplos cliques
+                            const buttons = document.getElementById('f15-options').querySelectorAll('button');
+                            buttons.forEach(b => b.style.pointerEvents = 'none');
+
+                            if(isCorrect) {
+                                btn.classList.replace('border-stone-700', 'border-green-500');
+                                btn.classList.replace('bg-stone-900/80', 'bg-green-900/60');
+                                Game.showToast('sucesso', 'Conhecimento Validado', 'Sua resposta está correta!');
+                                
+                                setTimeout(() => {
+                                    this.stage++;
+                                    this.renderQ();
+                                }, 1000);
+                            } else {
+                                btn.classList.replace('border-stone-700', 'border-red-600');
+                                btn.classList.replace('bg-stone-900/80', 'bg-red-900/60');
+                                
+                                this.lives--;
+                                this.updateHearts();
+                                Game.shakeElement('f15-container');
+                                
+                                if(this.lives <= 0) {
+                                    Game.showToast('erro', 'A Câmara foi Fechada', 'Você perdeu todas as vidas. Tente novamente o desafio final.');
+                                    setTimeout(() => Game.startPhase(15), 2500);
+                                } else {
+                                    Game.showToast('erro', 'Resposta Incorreta!', 'Os deuses exigem mais sabedoria. Você perdeu uma vida.');
+                                    // Deixa tentar de novo
+                                    setTimeout(() => {
+                                        buttons.forEach(b => {
+                                            b.style.pointerEvents = 'auto';
+                                            b.classList.remove('border-red-600', 'bg-red-900/60');
+                                            b.classList.add('border-stone-700', 'bg-stone-900/80');
+                                        });
+                                    }, 1500);
+                                }
+                            }
+                        },
+
+                        updateHearts() {
+                            let heartsHTML = '';
+                            for(let i=0; i<3; i++) {
+                                heartsHTML += `<span>${i < this.lives ? '❤️' : '🖤'}</span>`;
+                            }
+                            document.getElementById('f15-hearts').innerHTML = heartsHTML;
+                        }
+                    };
+                    F15.renderQ();
+                }
+            }
+        ];
+
+        /* INICIALIZAÇÃO AUTOMÁTICA AO CARREGAR O DOM */
+        window.onload = () => {
+            Game.init();
+        };
     </script>
+    
+    <!-- Animação extra usada na Fase 15 -->
+    <style>
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </body>
 </html>
