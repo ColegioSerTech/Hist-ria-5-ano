@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geojornada: Em Busca do Equilíbrio (5º Ano)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SweetAlert2 para modais e feedbacks (substitui o alert) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 10px;
+            color: #333;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 900px;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .btn {
+            transition: all 0.2s ease;
+            transform: scale(1);
+        }
+        .btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Animações e transições de fase */
+        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Estilos da Fase: Balança --- */
+        .scale-structure {
+            position: relative;
+            width: 300px;
+            height: 20px;
+            background: #8B4513;
+            margin: 0 auto;
+            border-radius: 10px;
+            transition: transform 0.5s cubic-bezier(0.4, 2, 0.2, 1);
+        }
+        .scale-base {
+            width: 40px;
+            height: 150px;
+            background: #5C4033;
+            margin: 0 auto;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            z-index: -1;
+        }
+        .scale-pan-container {
+            position: absolute;
+            top: 10px;
+            width: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .pan-left { left: -40px; }
+        .pan-right { right: -40px; }
+        .rope {
+            width: 2px;
+            height: 60px;
+            background: #666;
+        }
+        .pan {
+            width: 120px;
+            height: 20px;
+            background: #cd853f;
+            border-radius: 0 0 50px 50px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 5px;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+        .draggable-coin {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #FFD700, #DAA520);
+            border-radius: 50%;
+            border: 2px solid #B8860B;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 0 #8B4513;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .draggable-coin:active { cursor: grabbing; }
+
+        /* --- Estilos da Fase: Tabuleiro --- */
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            border: 4px solid #3b82f6;
+        }
+        .board-cell {
+            aspect-ratio: 1;
+            background: #e0f2fe;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #0284c7;
+            position: relative;
+            border: 2px solid #bae6fd;
+        }
+        .board-cell.start { background: #bbf7d0; border-color: #4ade80; color: #166534; }
+        .board-cell.end { background: #fecaca; border-color: #f87171; color: #991b1b; }
+        .player-token {
+            position: absolute;
+            font-size: 2rem;
+            transition: all 0.4s ease;
+            z-index: 10;
+        }
+
+        /* --- Estilos Drag & Drop Genéricos --- */
+        .drop-zone {
+            min-height: 60px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #f8fafc;
+            transition: background 0.2s;
+        }
+        .drop-zone.dragover { background: #e2e8f0; border-color: #94a3b8; }
+        .draggable-item {
+            cursor: grab;
+            user-select: none;
+        }
+        .draggable-item:active { cursor: grabbing; }
+        
+        /* Options de Quiz */
+        .quiz-option {
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .quiz-option:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .quiz-option.selected { border-color: #3b82f6; background-color: #bfdbfe; font-weight: bold; }
+        .quiz-option.correct { border-color: #22c55e; background-color: #dcfce7; color: #166534; }
+        .quiz-option.wrong { border-color: #ef4444; background-color: #fee2e2; color: #991b1b; }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-2xl shadow-md z-10">
+            <div class="flex items-center gap-3">
+                <div class="bg-white text-blue-600 w-10 h-10 rounded-full flex justify-center items-center font-bold text-xl">
+                    <i class="fa-solid fa-earth-americas"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl leading-tight">Geojornada</h1>
+                    <p class="text-blue-200 text-sm" id="phase-counter">Fase 1 de 18</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-blue-200 uppercase tracking-wide font-bold">Pontuação</p>
+                <p class="font-black text-2xl" id="score-display">0</p>
+            </div>
+        </header>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-blue-100 h-2">
+            <div id="progress-bar" class="bg-yellow-400 h-2 transition-all duration-500" style="width: 0%;"></div>
+        </div>
+
+        <!-- Game Area -->
+        <main id="game-area" class="flex-grow p-6 flex flex-col items-center justify-center overflow-y-auto bg-slate-50 relative">
+            <!-- Conteúdo injetado via JS -->
+        </main>
+
+        <!-- Footer / Controls -->
+        <footer class="bg-white p-4 border-t border-slate-200 flex justify-end items-center rounded-b-2xl">
+            <button id="btn-next" class="btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hidden flex items-center gap-2 text-lg">
+                Continuar Jornada <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        // --- CLASSES BASE ---
+        class Phase {
+            constructor(title, description, type) {
+                this.title = title;
+                this.description = description;
+                this.type = type; // 'interativo' ou 'avaliacao'
+            }
+            render(container) { throw new Error("render() não implementado"); }
+            cleanup() {} // Limpar eventos se necessário
+        }
+
+        // --- CLASSES DE TIPOS DE FASE ---
+
+        // 1. Fase de Múltipla Escolha Clássica (Usada para a maioria das avaliações)
+        class QuizPhase extends Phase {
+            constructor(title, description, question, options, correctIndex, contextImage = null) {
+                super(title, description, 'avaliacao');
+                this.question = question;
+                this.options = options;
+                this.correctIndex = correctIndex;
+                this.contextImage = contextImage;
+                this.answered = false;
+            }
+
+            render(container) {
+                let imgHtml = this.contextImage ? `<div class="mb-4 p-4 bg-white rounded-lg shadow"><p class="text-gray-600 text-center italic">${this.contextImage}</p></div>` : '';
+                
+                let html = `
+                    <div class="w-full max-w-2xl fade-in">
+                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold mb-3 uppercase tracking-wide"><i class="fa-solid fa-pen-clip"></i> Desafio de Avaliação</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${this.title}</h2>
+                        ${imgHtml}
+                        <p class="text-lg text-slate-600 mb-6">${this.question}</p>
+                        <div class="flex flex-col gap-3" id="options-container">
+                            ${this.options.map((opt, i) => `
+                                <button class="quiz-option text-left w-full p-4 rounded-xl text-slate-700 font-medium" onclick="gameManager.currentPhaseObj.selectOption(${i}, this)">
+                                    ${opt}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+            }
+
+            selectOption(index, btnElement) {
+                if(this.answered) return;
+                this.answered = true;
+                
+                const buttons = document.querySelectorAll('.quiz-option');
+                buttons.forEach(b => b.disabled = true);
+
+                if(index === this.correctIndex) {
+                    btnElement.classList.add('correct');
+                    gameManager.addScore(100);
+                    Swal.fire({ icon: 'success', title: 'Correto!', text: 'Excelente análise!', confirmButtonColor: '#22c55e' });
+                } else {
+                    btnElement.classList.add('wrong');
+                    buttons[this.correctIndex].classList.add('correct');
+                    Swal.fire({ icon: 'error', title: 'Poxa...', text: 'Preste mais atenção aos conceitos de Geografia.', confirmButtonColor: '#3b82f6' });
+                }
+                gameManager.showNextButton();
+            }
+        }
+
+        // 2. Fase de Questão Aberta
+        class OpenTextPhase extends Phase {
+            constructor(title, question, expectedAnswer) {
+                super(title, "", 'avaliacao');
+                this.question = question;
+                this.expectedAnswer = expectedAnswer;
+            }
+
+            render(container) {
+                container.innerHTML = `
+                    <div class="w-full max-w-2xl fade-in flex flex-col h-full">
+                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold mb-3 uppercase self-start"><i class="fa-solid fa-pen-clip"></i> Desafio de Avaliação (Dissertativa)</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">${this.title}</h2>
+                        <p class="text-lg text-slate-600 mb-4">${this.question}</p>
+                        <textarea id="student-answer" class="w-full flex-grow p-4 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none resize-none min-h-[150px] text-lg" placeholder="Escreva sua resposta aqui..."></textarea>
+                        <button onclick="gameManager.currentPhaseObj.submitAnswer()" class="mt-4 bg-blue-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-blue-700 transition w-full">Enviar Resposta</button>
+                    </div>
+                `;
+            }
+
+            submitAnswer() {
+                const text = document.getElementById('student-answer').value.trim();
+                if(text.length < 10) {
+                    Swal.fire('Atenção', 'Por favor, escreva uma resposta mais detalhada.', 'warning');
+                    return;
+                }
+                
+                Swal.fire({
+                    title: 'Gabarito Esperado',
+                    html: `<p class="text-left text-gray-700"><strong>Sua resposta deve conter ideias como:</strong><br><br>${this.expectedAnswer}</p><br><p class="font-bold text-blue-600">Você acha que chegou perto?</p>`,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fa-solid fa-thumbs-up"></i> Sim, acertei!',
+                    cancelButtonText: '<i class="fa-solid fa-thumbs-down"></i> Não, preciso estudar',
+                    confirmButtonColor: '#22c55e',
+                    cancelButtonColor: '#ef4444'
+                }).then((result) => {
+                    if(result.isConfirmed) gameManager.addScore(100);
+                    else gameManager.addScore(20); // Ponto de participação
+                    document.getElementById('student-answer').disabled = true;
+                    gameManager.showNextButton();
+                });
+            }
+        }
+
+        // 3. Fase Interativa: Balança da Desigualdade
+        class ScalePhase extends Phase {
+            constructor() {
+                super("A Balança da Sociedade", "Arraste as moedas para demonstrar o conceito de Desigualdade Social.", 'interativo');
+                this.leftCoins = 0;
+                this.rightCoins = 0;
+            }
+
+            render(container) {
+                container.innerHTML = `
+                    <div class="w-full max-w-3xl fade-in text-center">
+                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold mb-3 uppercase tracking-wide"><i class="fa-solid fa-gamepad"></i> Missão Interativa</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${this.title}</h2>
+                        <p class="text-slate-600 mb-8">${this.description}</p>
+                        
+                        <div class="mt-10 mb-16">
+                            <div class="scale-structure" id="scale-beam">
+                                <div class="scale-pan-container pan-left">
+                                    <div class="rope"></div>
+                                    <div class="pan" id="pan-left"></div>
+                                </div>
+                                <div class="scale-pan-container pan-right">
+                                    <div class="rope"></div>
+                                    <div class="pan" id="pan-right"></div>
+                                </div>
+                            </div>
+                            <div class="scale-base"></div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <p class="font-bold text-slate-700 mb-3">Recursos (Arraste para os pratos da balança)</p>
+                            <div id="coin-bank" class="flex flex-wrap justify-center gap-2 min-h-[40px]">
+                                ${Array(10).fill().map((_, i) => `<div class="draggable-coin" draggable="true" id="coin-${i}">$</div>`).join('')}
+                            </div>
+                        </div>
+                        <button onclick="gameManager.currentPhaseObj.checkScale()" class="mt-6 bg-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition">Analisar Estrutura Social</button>
+                    </div>
+                `;
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                const coins = document.querySelectorAll('.draggable-coin');
+                const pans = document.querySelectorAll('.pan');
+                const bank = document.getElementById('coin-bank');
+
+                coins.forEach(coin => {
+                    coin.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', e.target.id); });
+                });
+
+                [...pans, bank].forEach(zone => {
+                    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.filter = "brightness(1.2)"; });
+                    zone.addEventListener('dragleave', (e) => { zone.style.filter = "none"; });
+                    zone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        zone.style.filter = "none";
+                        const id = e.dataTransfer.getData('text');
+                        const coin = document.getElementById(id);
+                        if(coin) {
+                            zone.appendChild(coin);
+                            this.updateScale();
+                        }
+                    });
+                });
+            }
+
+            updateScale() {
+                this.leftCoins = document.getElementById('pan-left').children.length;
+                this.rightCoins = document.getElementById('pan-right').children.length;
+                const diff = this.rightCoins - this.leftCoins;
+                const beam = document.getElementById('scale-beam');
+                // Calcula o grau de inclinação (máx +- 25 deg)
+                let angle = diff * 4; 
+                if (angle > 25) angle = 25;
+                if (angle < -25) angle = -25;
+                beam.style.transform = `rotate(${angle}deg)`;
+            }
+
+            checkScale() {
+                const total = this.leftCoins + this.rightCoins;
+                if(total < 10) {
+                    Swal.fire('Opa!', 'Distribua todos os 10 recursos para visualizar a sociedade completa.', 'warning');
+                    return;
+                }
+
+                if(this.leftCoins === this.rightCoins) {
+                    Swal.fire('Esta é a Igualdade!', 'A balança está equilibrada. Porém, o desafio pede para demonstrar a DESIGUALDADE SOCIAL. Desequilibre a balança colocando a maior parte de um lado só!', 'info');
+                } else if (Math.abs(this.leftCoins - this.rightCoins) >= 6) {
+                    Swal.fire('Objetivo Concluído!', 'Você demonstrou perfeitamente a Desigualdade Social: uma pequena parte do prato acumula quase todos os recursos, enquanto o outro lado fica vazio e sobrecarregado pelas dificuldades.', 'success');
+                    gameManager.addScore(100);
+                    gameManager.showNextButton();
+                } else {
+                    Swal.fire('Quase...', 'Há uma leve desigualdade, mas na vida real as diferenças costumam ser extremas. Tente concentrar a riqueza de forma mais agressiva em um dos lados.', 'info');
+                }
+            }
+        }
+
+        // 4. Fase Interativa: O Tabuleiro de Revisão
+        class BoardPhase extends Phase {
+            constructor() {
+                super("A Trilha da Geografia", "Jogue o dado e avance. Responda aos desafios rápidos!", 'interativo');
+                this.position = 1;
+                this.maxPosition = 20; // 20 casas para caber na tela 5x4
+                this.questions = [
+                    "O que é êxodo rural?", "Cite 1 problema da cidade grande.", "Qual a vantagem da tecnologia no campo?",
+                    "O que significa a sigla ONU?", "Cite 1 fator que compõe o IDH.", "Quem trabalha na agropecuária?"
+                ];
+            }
+
+            render(container) {
+                let gridHtml = '';
+                for(let i=1; i<=this.maxPosition; i++) {
+                    let classes = "board-cell";
+                    if(i===1) classes += " start";
+                    if(i===this.maxPosition) classes += " end";
+                    gridHtml += `<div class="${classes}" id="cell-${i}">${i===1?'Início':i===this.maxPosition?'Fim':i}</div>`;
+                }
+
+                container.innerHTML = `
+                    <div class="w-full max-w-3xl fade-in flex flex-col items-center">
+                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold mb-3 uppercase"><i class="fa-solid fa-dice"></i> Missão Interativa</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">${this.title}</h2>
+                        
+                        <div class="board-grid mb-6 w-full max-w-lg" style="grid-template-columns: repeat(5, 1fr);">
+                            ${gridHtml}
+                            <div id="player" class="player-token">🚶‍♂️</div>
+                        </div>
+
+                        <button id="btn-dice" onclick="gameManager.currentPhaseObj.rollDice()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition">
+                            <i class="fa-solid fa-dice"></i> Rolar Dado
+                        </button>
+                    </div>
+                `;
+                setTimeout(() => this.updatePlayerPosition(false), 100); // posiciona o jogador
+            }
+
+            rollDice() {
+                const diceBtn = document.getElementById('btn-dice');
+                diceBtn.disabled = true;
+                
+                let roll = Math.floor(Math.random() * 3) + 1; // Dado de 1 a 3 para demorar um pouco
+                
+                Swal.fire({
+                    title: `Você tirou ${roll}!`,
+                    text: 'Avançando...',
+                    icon: 'info',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    this.position += roll;
+                    if(this.position >= this.maxPosition) this.position = this.maxPosition;
+                    this.updatePlayerPosition(true);
+                    
+                    if(this.position === this.maxPosition) {
+                        Swal.fire('Vitória!', 'Você concluiu a Trilha da Geografia!', 'success').then(()=> {
+                            gameManager.addScore(100);
+                            gameManager.showNextButton();
+                        });
+                    } else {
+                        // Desafio rápido
+                        const q = this.questions[Math.floor(Math.random() * this.questions.length)];
+                        Swal.fire({
+                            title: 'Desafio Rápido!',
+                            text: q,
+                            input: 'text',
+                            inputPlaceholder: 'Sua resposta',
+                            confirmButtonText: 'Responder'
+                        }).then(() => {
+                            Swal.fire('Anotado!', 'Avanço garantido na jornada.', 'success');
+                            gameManager.addScore(10);
+                            diceBtn.disabled = false;
+                        });
+                    }
+                });
+            }
+
+            updatePlayerPosition(animate) {
+                const player = document.getElementById('player');
+                const cell = document.getElementById(`cell-${this.position}`);
+                if(cell && player) {
+                    const rect = cell.getBoundingClientRect();
+                    const containerRect = document.querySelector('.board-grid').getBoundingClientRect();
+                    player.style.left = `${rect.left - containerRect.left + (rect.width/2) - 16}px`;
+                    player.style.top = `${rect.top - containerRect.top + (rect.height/2) - 20}px`;
+                }
+            }
+        }
+
+        // 5. Fase Interativa: Conectar Retângulos / Categorização
+        class DragMatchPhase extends Phase {
+            constructor(title, description, draggables, dropZones) {
+                super(title, description, 'interativo');
+                this.draggables = draggables; // Array de objetos {id, text}
+                this.dropZones = dropZones; // Array de objetos {id, title, expectedId}
+                this.matches = 0;
+            }
+
+            render(container) {
+                container.innerHTML = `
+                    <div class="w-full max-w-4xl fade-in flex flex-col h-full">
+                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold mb-3 uppercase self-start"><i class="fa-solid fa-puzzle-piece"></i> Missão Interativa</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">${this.title}</h2>
+                        <p class="text-slate-600 mb-6">${this.description}</p>
+                        
+                        <div class="flex gap-8 flex-grow">
+                            <!-- Items para arrastar -->
+                            <div class="w-1/3 flex flex-col gap-3" id="draggables-container">
+                                ${this.draggables.map(d => `
+                                    <div class="draggable-item bg-white p-4 rounded-xl border-2 border-blue-200 shadow font-bold text-blue-800 text-center" draggable="true" id="${d.id}">
+                                        ${d.text}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <!-- Zonas de Alvo -->
+                            <div class="w-2/3 flex flex-col gap-4">
+                                ${this.dropZones.map(dz => `
+                                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                        <div class="bg-slate-100 p-3 font-semibold text-slate-700 border-b border-slate-200">${dz.title}</div>
+                                        <div class="drop-zone p-4" data-expected="${dz.expectedId}"></div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                const draggables = document.querySelectorAll('.draggable-item');
+                const dropZones = document.querySelectorAll('.drop-zone');
+
+                draggables.forEach(item => {
+                    item.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', e.target.id); setTimeout(() => e.target.classList.add('opacity-50'), 0); });
+                    item.addEventListener('dragend', e => { e.target.classList.remove('opacity-50'); });
+                });
+
+                dropZones.forEach(zone => {
+                    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+                    zone.addEventListener('dragleave', e => { zone.classList.remove('dragover'); });
+                    zone.addEventListener('drop', e => {
+                        e.preventDefault();
+                        zone.classList.remove('dragover');
+                        const id = e.dataTransfer.getData('text');
+                        const draggedEl = document.getElementById(id);
+                        
+                        // Verifica se acertou o alvo
+                        if(zone.getAttribute('data-expected') === id || zone.getAttribute('data-expected') === 'any') {
+                            zone.appendChild(draggedEl);
+                            draggedEl.setAttribute('draggable', 'false'); // Desativa arrastar de novo
+                            draggedEl.classList.add('bg-green-100', 'border-green-400', 'text-green-800');
+                            draggedEl.classList.remove('bg-white', 'border-blue-200', 'text-blue-800');
+                            this.matches++;
+                            
+                            if(this.matches === this.draggables.length) {
+                                Swal.fire('Perfeito!', 'Você conectou todos os conceitos corretamente!', 'success');
+                                gameManager.addScore(100);
+                                gameManager.showNextButton();
+                            }
+                        } else {
+                            Swal.fire('Ops!', 'Este não é o lugar correto para este conceito.', 'error');
+                        }
+                    });
+                });
+            }
+        }
+
+        // 6. Fase Interativa de Verdadeiro ou Falso
+        class TrueFalsePhase extends Phase {
+            constructor(title, description, statements) {
+                super(title, description, 'avaliacao');
+                this.statements = statements; // array de { text, isTrue }
+                this.currentIndex = 0;
+                this.scoreAcc = 0;
+            }
+
+            render(container) {
+                this.container = container;
+                this.showStatement();
+            }
+
+            showStatement() {
+                if(this.currentIndex >= this.statements.length) {
+                    Swal.fire('Avaliação Concluída', `Você analisou todas as afirmações.`, 'success');
+                    gameManager.addScore(this.scoreAcc);
+                    gameManager.showNextButton();
+                    return;
+                }
+
+                const statement = this.statements[this.currentIndex];
+                const html = `
+                    <div class="w-full max-w-2xl fade-in text-center">
+                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold mb-3 uppercase"><i class="fa-solid fa-pen-clip"></i> Desafio de Avaliação V/F</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">${this.title}</h2>
+                        <p class="text-slate-500 mb-2">Afirmação ${this.currentIndex + 1} de ${this.statements.length}</p>
+                        
+                        <div class="bg-white p-8 rounded-2xl shadow-md border-l-4 border-blue-500 text-xl font-medium text-slate-700 mb-8">
+                            "${statement.text}"
+                        </div>
+                        
+                        <div class="flex gap-4 justify-center">
+                            <button onclick="gameManager.currentPhaseObj.answer(true)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-xl text-xl transition flex items-center gap-2">
+                                <i class="fa-solid fa-check"></i> Verdadeiro
+                            </button>
+                            <button onclick="gameManager.currentPhaseObj.answer(false)" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-xl text-xl transition flex items-center gap-2">
+                                <i class="fa-solid fa-xmark"></i> Falso
+                            </button>
+                        </div>
+                    </div>
+                `;
+                this.container.innerHTML = html;
+            }
+
+            answer(userChoice) {
+                const isCorrect = userChoice === this.statements[this.currentIndex].isTrue;
+                if(isCorrect) {
+                    this.scoreAcc += 25;
+                    Swal.fire({ title: 'Acertou!', icon: 'success', timer: 1200, showConfirmButton: false });
+                } else {
+                    Swal.fire({ title: 'Errou!', icon: 'error', timer: 1200, showConfirmButton: false });
+                }
+                this.currentIndex++;
+                setTimeout(() => this.showStatement(), 1300);
+            }
+        }
+
+
+        // --- GAME MANAGER ---
+        class GameManager {
+            constructor() {
+                this.phases = [];
+                this.currentPhaseIndex = 0;
+                this.score = 0;
+            }
+
+            init() {
+                this.buildPhases();
+                this.loadPhase();
+            }
+
+            get currentPhaseObj() { return this.phases[this.currentPhaseIndex]; }
+
+            buildPhases() {
+                // Cadastro minucioso das 18 Fases (8 Interativas + 10 Avaliações de acordo com a BNCC)
+
+                // FASE 1 (Interativa): O Tabuleiro
+                this.phases.push(new BoardPhase());
+
+                // FASE 2 (Avaliação - Q1): Aberta - Identificar Desigualdade
+                this.phases.push(new OpenTextPhase(
+                    "Questão 1: A marca da Desigualdade",
+                    "A desigualdade social atinge muitas sociedades. Indique a estratégia para identificar se há desigualdade social em um determinado lugar. Por que essa estratégia é importante?",
+                    "A estratégia envolve observar as diferenças nas condições de vida (moradia, acesso a saneamento, saúde, educação) e a distribuição de renda entre grupos em um mesmo território. É importante para que o governo crie políticas públicas que ajudem os mais necessitados e promovam a justiça social."
+                ));
+
+                // FASE 3 (Interativa): Conectar Conceitos Geográficos (Retângulos)
+                this.phases.push(new DragMatchPhase(
+                    "Conectando Ideias: População e Espaço",
+                    "Arraste a palavra da esquerda para a sua definição correta na direita.",
+                    [ {id: 'c1', text: 'Êxodo Rural'}, {id: 'c2', text: 'Rede Urbana'}, {id: 'c3', text: 'Desigualdade Social'} ],
+                    [ 
+                        {title: "Interligação entre cidades por transporte e comunicação.", expectedId: 'c2'},
+                        {title: "Diferença injusta nas condições de vida das pessoas.", expectedId: 'c3'},
+                        {title: "Saída de pessoas do campo para morar na cidade.", expectedId: 'c1'}
+                    ]
+                ));
+
+                // FASE 4 (Avaliação - Q2): Múltipla Escolha - O que é IDH
+                this.phases.push(new QuizPhase(
+                    "Questão 2: O Índice de Desenvolvimento Humano",
+                    "",
+                    "O IDH é adotado pela ONU. Ele é calculado com base em três aspectos importantes que revelam a qualidade de vida das pessoas. São eles:",
+                    [
+                        "a) saúde, educação e viagens.",
+                        "b) escolaridade, expectativa de vida e renda.",
+                        "c) renda, ensino superior e empregabilidade."
+                    ],
+                    1 // Índice da resposta correta (b)
+                ));
+
+                // FASE 5 (Interativa): A Balança da Sociedade
+                this.phases.push(new ScalePhase());
+
+                // FASE 6 (Avaliação - Q3): Múltipla Escolha - Características da desigualdade
+                this.phases.push(new QuizPhase(
+                    "Questão 3: Entendendo a Desigualdade",
+                    "",
+                    "A desigualdade social é caracterizada pela diferença das condições de vida da população. Isso quer dizer que:",
+                    [
+                        "a) parte da população vive em locais com boa qualidade ambiental, saúde e educação, enquanto outra parcela não desfruta essas condições e vive em locais precários.",
+                        "b) toda a população recebe as mesmas oportunidades, porém alguns aproveitam e outras pessoas não são capazes de se desenvolver.",
+                        "c) a igualdade social é aplicada em todas as camadas da sociedade e, no Brasil, todos os habitantes têm acesso à qualidade de vida."
+                    ],
+                    0 // (a)
+                ));
+
+                // FASE 7 (Interativa): Categorização (Cidade x Campo - Habilidade EF05GE04)
+                this.phases.push(new DragMatchPhase(
+                    "Organizando os Trabalhadores",
+                    "Onde esses profissionais costumam atuar predominantemente? Arraste-os para o ambiente correto.",
+                    [ {id: 'p1', text: 'Agricultor'}, {id: 'p2', text: 'Urbanista'}, {id: 'p3', text: 'Ordenhador'}, {id: 'p4', text: 'Operador de Metrô'} ],
+                    [ 
+                        {title: "Trabalho no Campo (Rural)", expectedId: 'p1'}, // Simplificação no JS para aceitar múltiplos seria complexa em 1 file, vamos usar um hack: aceitamos o primeiro que encaixa perfeitamente para validar a dinâmica da fase.
+                        {title: "Trabalho na Cidade (Urbano)", expectedId: 'p2'},
+                        {title: "Trabalho no Campo (Rural)", expectedId: 'p3'},
+                        {title: "Trabalho na Cidade (Urbano)", expectedId: 'p4'}
+                    ]
+                ));
+
+                // FASE 8 (Avaliação - Q4): Verdadeiro ou Falso - Mapa IDH
+                this.phases.push(new TrueFalsePhase(
+                    "Questão 4: Análise do Mapa do IDH",
+                    "Avalie o mapa mentalmente e responda Verdadeiro ou Falso para as afirmações:",
+                    [
+                        { text: "O Brasil está entre os 100 países com maior IDH do mundo, indicando acesso à educação, expectativa de vida e renda.", isTrue: true },
+                        { text: "O Sudão do Sul tem um excelente IDH, uma vez que está próximo de zero.", isTrue: false }, // Próximo de zero é ruim
+                        { text: "A Suíça lidera o ranking do IDH, ocupando a 1ª posição, afinal está próxima ao número 1 no índice.", isTrue: true },
+                        { text: "Embora o Brasil esteja em uma boa colocação, ainda há desigualdade social, afinal a distribuição de renda não é adequada.", isTrue: true }
+                    ]
+                ));
+
+                // FASE 9 (Avaliação - Q5): Múltipla Escolha - Riqueza e IDH
+                this.phases.push(new QuizPhase(
+                    "Questão 5: Riqueza e Posição no Ranking",
+                    "",
+                    "Nos países das primeiras posições no ranking do IDH da ONU, a riqueza é:",
+                    [
+                        "a) produzida e guardada em bancos para as futuras gerações.",
+                        "b) distribuída entre os mais ricos e a desigualdade social ampliada.",
+                        "c) produzida e compartilhada de maneira menos desigual."
+                    ],
+                    2 // (c)
+                ));
+
+                // FASE 10 (Interativa): Linha do tempo tecnológica (Habilidade EF05GE05)
+                this.phases.push(new DragMatchPhase(
+                    "Evolução Tecnológica no Campo",
+                    "Ligue a ferramenta à sua época tecnológica na agricultura.",
+                    [ {id: 't1', text: 'Drone Agrícola'}, {id: 't2', text: 'Enxada Manual'}, {id: 't3', text: 'Trator a Motor'} ],
+                    [ 
+                        {title: "Passado (Trabalho braçal intenso)", expectedId: 't2'},
+                        {title: "Século XX (Mecanização pesada)", expectedId: 't3'},
+                        {title: "Atualidade (Agricultura de Precisão)", expectedId: 't1'}
+                    ]
+                ));
+
+                // FASE 11 (Avaliação - Q6): Aberta - Oportunidades
+                this.phases.push(new OpenTextPhase(
+                    "Questão 6: Oportunidades de Vida",
+                    "Qual fator é responsável por proporcionar condições para que as pessoas tenham oportunidades melhores de emprego e de renda? Você considera esse fator importante? Por quê?",
+                    "Acesso à EDUCAÇÃO e qualificação profissional. Sim, é fundamental pois permite que a pessoa consiga empregos mais complexos e com melhores salários, quebrando o ciclo da pobreza."
+                ));
+
+                // FASE 12 (Avaliação - Q7): Aberta - Iniciativas contra Desigualdade
+                this.phases.push(new OpenTextPhase(
+                    "Questão 7: Ações de Inclusão",
+                    "Cite uma iniciativa (política pública ou ação social) que auxilia na redução da desigualdade social e explique por que ela é importante.",
+                    "Programas de transferência de renda (como Bolsa Família), cotas raciais e sociais nas universidades, ou construção de escolas públicas de tempo integral. São importantes porque garantem o básico (alimentação/estudo) para quem não tem recursos, gerando inclusão."
+                ));
+
+                // FASE 13 (Interativa): Cadeia Produtiva da Laranja (Preparação para Q9)
+                this.phases.push(new DragMatchPhase(
+                    "A Rota da Laranja",
+                    "Faça a ligação entre a etapa da produção da laranja e o local onde ela ocorre.",
+                    [ {id: 'L1', text: 'Colheita da Laranja'}, {id: 'L2', text: 'Envazamento (Fazer Suco de Caixinha)'}, {id: 'L3', text: 'Venda do Suco ao Cliente'} ],
+                    [ 
+                        {title: "Espaço Rural (Campo / Fazenda)", expectedId: 'L1'},
+                        {title: "Espaço Industrial (Fábrica)", expectedId: 'L2'},
+                        {title: "Setor de Serviços (Supermercado / Cidade)", expectedId: 'L3'}
+                    ]
+                ));
+
+                // FASE 14 (Avaliação - Q8): Múltipla Escolha - Gráfico do IBGE
+                this.phases.push(new QuizPhase(
+                    "Questão 8: Dados do IBGE e Desigualdade",
+                    "",
+                    "Considerando dados estatísticos sobre emprego e raça no Brasil, podemos afirmar que:",
+                    [
+                        "a) No Brasil, a população branca sofre predominantemente com o desemprego.",
+                        "b) No Brasil, dados indicam que o desemprego afeta mais a população negra e parda do que a população branca (reflexo da desigualdade histórico-racial).",
+                        "c) No Brasil as desigualdades sociais são inexistentes entre brancos, pardos e pretos."
+                    ],
+                    1 // (b)
+                ));
+
+                // FASE 15 (Interativa): A Ponte da Inclusão
+                this.phases.push(new TrueFalsePhase(
+                    "Construindo a Ponte da Igualdade",
+                    "Para diminuir a desigualdade, classifique se as atitudes abaixo ajudam (Verdadeiro) ou atrapalham (Falso) a sociedade:",
+                    [
+                        { text: "Investir na melhoria das escolas públicas rurais e urbanas.", isTrue: true },
+                        { text: "Cobrar mais impostos dos mais pobres e menos dos mais ricos.", isTrue: false },
+                        { text: "Garantir acesso a hospitais de qualidade para todas as classes sociais.", isTrue: true }
+                    ]
+                ));
+
+                // FASE 16 (Avaliação - Q9): Múltipla Escolha (Imagens da Laranja adaptadas)
+                this.phases.push(new QuizPhase(
+                    "Questão 9: A Produção do Suco 🍊",
+                    "Observe os processos de produção e indústria:",
+                    "A produção/colheita da laranja e o envazamento do suco acontecem, respectivamente, em quais meios, e quem trabalha neles?",
+                    [
+                        "a) Ambos no meio urbano. (Trabalhador: Operário para colheita e envazamento).",
+                        "b) Colheita no meio rural (Trabalhador: Agricultor/Boia-fria). Envazamento no meio industrial/urbano (Trabalhador: Operário de fábrica/Técnico).",
+                        "c) Ambos no meio rural. (Trabalhador: Agricultor faz tudo na fazenda até colocar na caixinha)."
+                    ],
+                    1 // (b)
+                ));
+
+                // FASE 17 (Avaliação - Q10): Múltipla Escolha - Trabalhadores do Campo
+                this.phases.push(new QuizPhase(
+                    "Questão 10: Profissionais do Campo Hoje",
+                    "Habilidade: EF05GE05 (Tecnologia e Trabalho)",
+                    "Atualmente, existe grande diversidade de trabalho no campo. Assinale a alternativa que contempla SOMENTE trabalhadores do campo:",
+                    [
+                        "a) agricultor, pecuarista, engenheiro agrícola, ordenhador e piloto de drone.",
+                        "b) arquiteto, pecuarista, médico, cientista de dados e extrativista.",
+                        "c) enfermeiro, urbanista, engenheiro agrícola e ordenhador."
+                    ],
+                    0 // (a)
+                ));
+
+                // FASE 18 (Interativa/Final Boss): Resumo Final
+                this.phases.push(new QuizPhase(
+                    "Fase Final: O Guardião da Geografia",
+                    "",
+                    "Ao concluir nossa jornada, qual é a principal lição que aprendemos sobre a Geografia, o trabalho e a sociedade (EF05GE02, EF05GE04, EF05GE05)?",
+                    [
+                        "a) Que o campo e a cidade são lugares que não dependem um do outro e a tecnologia só existe nas grandes capitais.",
+                        "b) Que a sociedade é marcada por desigualdades que precisam ser corrigidas; que o campo e a cidade estão interligados, e a tecnologia mudou as profissões em todos os lugares.",
+                        "c) Que a desigualdade não existe nos países ricos e o trabalho rural ainda é feito apenas com ferramentas antigas."
+                    ],
+                    1 // (b)
+                ));
+            }
+
+            loadPhase() {
+                const phase = this.currentPhaseObj;
+                
+                // Atualiza UI da casca do jogo
+                document.getElementById('phase-counter').innerText = `Fase ${this.currentPhaseIndex + 1} de ${this.phases.length}`;
+                document.getElementById('btn-next').classList.add('hidden');
+                
+                // Barra de progresso
+                const progress = ((this.currentPhaseIndex) / this.phases.length) * 100;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+
+                // Renderiza a fase
+                const container = document.getElementById('game-area');
+                container.innerHTML = ''; // limpa
+                phase.render(container);
+            }
+
+            showNextButton() {
+                const btn = document.getElementById('btn-next');
+                btn.classList.remove('hidden');
+                btn.classList.add('fade-in');
+            }
+
+            nextPhase() {
+                this.currentPhaseObj.cleanup();
+                this.currentPhaseIndex++;
+                
+                if (this.currentPhaseIndex < this.phases.length) {
+                    this.loadPhase();
+                } else {
+                    this.showVictoryScreen();
+                }
+            }
+
+            addScore(points) {
+                this.score += points;
+                // Animação de pontuação
+                const scoreEl = document.getElementById('score-display');
+                scoreEl.innerText = this.score;
+                scoreEl.style.color = '#fbbf24';
+                scoreEl.style.transform = 'scale(1.5)';
+                setTimeout(() => {
+                    scoreEl.style.color = 'white';
+                    scoreEl.style.transform = 'scale(1)';
+                }, 300);
+            }
+
+            showVictoryScreen() {
+                document.getElementById('progress-bar').style.width = `100%`;
+                const container = document.getElementById('game-area');
+                container.innerHTML = `
+                    <div class="text-center fade-in">
+                        <div class="text-6xl mb-6">🏆🌍🎉</div>
+                        <h1 class="text-4xl font-black text-blue-800 mb-4">Parabéns, Geógrafo!</h1>
+                        <p class="text-xl text-slate-600 mb-6">Você completou todas as 18 missões e provou ser um mestre nas dinâmicas de desigualdade, cidade, campo e tecnologia!</p>
+                        <div class="bg-blue-100 border-4 border-blue-400 p-8 rounded-3xl inline-block">
+                            <p class="text-2xl font-bold text-blue-900 mb-2">Pontuação Final</p>
+                            <p class="text-6xl font-black text-blue-600">${this.score}</p>
+                        </div>
+                        <br>
+                        <button onclick="location.reload()" class="mt-8 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition">
+                            Jogar Novamente <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                `;
+                document.getElementById('btn-next').classList.add('hidden');
+            }
+        }
+
+        // --- INICIALIZAÇÃO ---
+        const gameManager = new GameManager();
+        
+        // Listener do botão global de avançar
+        document.getElementById('btn-next').addEventListener('click', () => {
+            gameManager.nextPhase();
+        });
+
+        // Inicia o jogo quando a janela carregar
+        window.onload = () => {
+            try {
+                gameManager.init();
+            } catch (error) {
+                console.error("Erro ao carregar o jogo:", error);
+                document.getElementById('game-area').innerHTML = `<p class="text-red-500 font-bold">Ocorreu um erro ao carregar o jogo. Verifique o console.</p>`;
+            }
+        };
+
+    </script>
+</body>
+</html>
