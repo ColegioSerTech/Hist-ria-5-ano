@@ -154,21 +154,38 @@
                 completedPhases: [],
                 currentPhase: null,
                 xp: 0,
-                maxPhase: 14 // 14 Fases Normais. A 15ª é secreta.
+                maxPhase: 14, // 14 Fases Normais. A 15ª é secreta.
+                activeIntervals: []
             },
             
+            registerInterval(id) {
+                this.state.activeIntervals.push(id);
+                return id;
+            },
+
+            clearAllIntervals() {
+                this.state.activeIntervals.forEach(id => clearInterval(id));
+                this.state.activeIntervals = [];
+            },
+
             init() {
                 this.goToHub();
             },
 
             addXP(amount) {
                 this.state.xp += amount;
-                document.getElementById('xp-text').innerText = `${this.state.xp} XP`;
+                const xpText = document.getElementById('xp-text');
+                if (xpText) xpText.innerText = `${this.state.xp} XP`;
+                
                 const progressPct = Math.min((this.state.xp / (this.state.maxPhase * 100)) * 100, 100);
-                document.getElementById('xp-bar').style.width = `${progressPct}%`;
+                const xpBar = document.getElementById('xp-bar');
+                if (xpBar && xpBar.style) xpBar.style.width = `${progressPct}%`;
             },
 
             renderScreen(htmlContent, initCallback = null) {
+                // Clear any running timers before rendering the new screen to prevent memory leaks
+                this.clearAllIntervals();
+                
                 const container = document.getElementById('app-container');
                 container.innerHTML = htmlContent;
                 
@@ -268,11 +285,13 @@
                 const modal = document.getElementById('victory-modal');
                 const panel = document.getElementById('victory-panel');
                 
-                modal.classList.remove('hidden');
-                void modal.offsetWidth;
-                
-                modal.classList.replace('opacity-0', 'opacity-100');
-                panel.classList.replace('scale-95', 'scale-100');
+                if (modal && panel) {
+                    modal.classList.remove('hidden');
+                    void modal.offsetWidth;
+                    
+                    modal.classList.replace('opacity-0', 'opacity-100');
+                    panel.classList.replace('scale-95', 'scale-100');
+                }
                 
                 this.showToast('sucesso', 'Conquista Desbloqueada!', `+${xpGained} Pontos de Experiência`);
             },
@@ -281,17 +300,21 @@
                 const modal = document.getElementById('victory-modal');
                 const panel = document.getElementById('victory-panel');
                 
-                modal.classList.replace('opacity-100', 'opacity-0');
-                panel.classList.replace('scale-100', 'scale-95');
-                
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                    this.goToHub();
-                }, 300);
+                if (modal && panel) {
+                    modal.classList.replace('opacity-100', 'opacity-0');
+                    panel.classList.replace('scale-100', 'scale-95');
+                    
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        this.goToHub();
+                    }, 300);
+                }
             },
 
             showToast(type, title, message) {
                 const container = document.getElementById('toast-container');
+                if (!container) return;
+
                 const toast = document.createElement('div');
                 const colors = type === 'erro' ? 'bg-red-950 border-red-700 text-red-200' : 'bg-[#182e18] border-green-600 text-green-200';
                 const icon = type === 'erro' ? '❌' : '🌟';
@@ -310,6 +333,7 @@
             
             shakeElement(elementId) {
                 const el = document.getElementById(elementId);
+                if (!el) return;
                 el.classList.remove('shake-animation');
                 void el.offsetWidth;
                 el.classList.add('shake-animation');
@@ -358,6 +382,7 @@
                         ctx: null, drawing: false, marks: 0,
                         setup() {
                             const canvas = document.getElementById('f1-canvas');
+                            if(!canvas) return;
                             canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
                             this.ctx = canvas.getContext('2d');
                             this.ctx.fillStyle = 'rgba(150, 101, 54, 0.1)'; this.ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -383,25 +408,43 @@
                         },
                         draw(e) {
                             if(!this.drawing) return;
-                            const rect = document.getElementById('f1-canvas').getBoundingClientRect();
+                            const canvas = document.getElementById('f1-canvas');
+                            if(!canvas) return;
+                            const rect = canvas.getBoundingClientRect();
                             const x = e.clientX - rect.left, y = e.clientY - rect.top;
                             this.ctx.fillStyle = 'rgba(40, 20, 5, 0.8)';
                             this.ctx.beginPath(); this.ctx.arc(x, y, 4, 0, Math.PI*2); this.ctx.fill();
                             
                             this.marks++;
                             const pct = Math.min((this.marks / 50) * 100, 100);
-                            document.getElementById('f1-progress').style.width = pct + '%';
+                            const progress = document.getElementById('f1-progress');
+                            if(progress && progress.style) progress.style.width = pct + '%';
                             
                             if (this.marks >= 50) {
                                 const btn = document.getElementById('f1-btn-next');
-                                btn.classList.remove('opacity-50', 'pointer-events-none');
-                                btn.classList.add('pulse-glow');
+                                if(btn) {
+                                    btn.classList.remove('opacity-50', 'pointer-events-none');
+                                    btn.classList.add('pulse-glow');
+                                }
                             }
                         },
-                        clear() { this.marks = 0; document.getElementById('f1-progress').style.width = '0%'; document.getElementById('f1-btn-next').classList.add('opacity-50', 'pointer-events-none'); document.getElementById('f1-btn-next').classList.remove('pulse-glow'); this.setup(); },
+                        clear() { 
+                            this.marks = 0; 
+                            const progress = document.getElementById('f1-progress');
+                            if(progress && progress.style) progress.style.width = '0%'; 
+                            const btn = document.getElementById('f1-btn-next');
+                            if(btn) {
+                                btn.classList.add('opacity-50', 'pointer-events-none'); 
+                                btn.classList.remove('pulse-glow'); 
+                            }
+                            this.setup(); 
+                        },
                         answer() { 
-                            document.getElementById('f1-quiz').classList.remove('hidden'); 
-                            document.getElementById('f1-quiz').scrollIntoView({behavior: 'smooth'});
+                            const quiz = document.getElementById('f1-quiz');
+                            if(quiz) {
+                                quiz.classList.remove('hidden'); 
+                                quiz.scrollIntoView({behavior: 'smooth'});
+                            }
                         },
                         check(ans) {
                             if(!ans) Game.completePhase("A escrita surgiu da necessidade económica. Os escribas gravavam em argila húmida (cuneiforme), pois o papel não existia na Mesopotâmia.");
@@ -443,10 +486,12 @@
                             if (this.found >= 3 || el.classList.contains('opacity-20')) return;
                             
                             const slot = document.getElementById(`slot-${this.found}`);
-                            slot.innerHTML = `<div class="animate-bounce">${sym}</div>`;
-                            slot.classList.replace('border-dashed', 'border-solid');
-                            slot.classList.replace('border-amber-600/50', 'border-green-500');
-                            slot.classList.replace('bg-black/30', 'bg-green-900/40');
+                            if(slot) {
+                                slot.innerHTML = `<div class="animate-bounce">${sym}</div>`;
+                                slot.classList.replace('border-dashed', 'border-solid');
+                                slot.classList.replace('border-amber-600/50', 'border-green-500');
+                                slot.classList.replace('bg-black/30', 'bg-green-900/40');
+                            }
                             
                             el.classList.add('opacity-20', 'pointer-events-none');
                             this.found++;
@@ -454,7 +499,8 @@
                             Game.showToast('sucesso', 'Símbolo Traduzido', `O símbolo ${sym} representa o conceito de "${this.meanings[sym]}".`);
                             
                             if (this.found === 3) {
-                                document.getElementById('f2-container').classList.add('pulse-glow');
+                                const container = document.getElementById('f2-container');
+                                if (container) container.classList.add('pulse-glow');
                                 setTimeout(() => Game.completePhase("Os antigos egípcios desenvolveram um sistema onde os símbolos (hieróglifos) significavam tanto sons quanto conceitos vitais e religiosos para o seu povo."), 1500);
                             }
                         }
@@ -494,24 +540,33 @@
                     window.F3 = {
                         update(val) {
                             const pct = ((val - 1980) / (2020 - 1980)) * 100;
-                            document.getElementById('f3-fill').style.width = pct + '%';
+                            const fill = document.getElementById('f3-fill');
                             const tooltip = document.getElementById('f3-tooltip');
-                            tooltip.style.left = pct + '%';
-                            tooltip.querySelector('span').innerText = val;
+                            if(fill && fill.style) fill.style.width = pct + '%';
+                            if(tooltip && tooltip.style) {
+                                tooltip.style.left = pct + '%';
+                                tooltip.querySelector('span').innerText = val;
+                            }
                             
                             // Visual noise effect based on distance from 2002
                             const dist = Math.abs(val - 2002);
                             const opacity = Math.min(dist * 0.05, 0.5);
-                            document.getElementById('f3-static').style.opacity = opacity;
+                            const staticEl = document.getElementById('f3-static');
+                            if(staticEl && staticEl.style) staticEl.style.opacity = opacity;
                             
-                            if (val == 2002) {
-                                document.getElementById('f3-target').classList.replace('opacity-0', 'opacity-100');
-                                document.getElementById('f3-target').classList.replace('translate-y-10', 'translate-y-0');
-                                document.getElementById('f3-container').classList.add('border-green-500');
-                            } else {
-                                document.getElementById('f3-target').classList.replace('opacity-100', 'opacity-0');
-                                document.getElementById('f3-target').classList.replace('translate-y-0', 'translate-y-10');
-                                document.getElementById('f3-container').classList.remove('border-green-500');
+                            const target = document.getElementById('f3-target');
+                            const container = document.getElementById('f3-container');
+                            
+                            if(target && container) {
+                                if (val == 2002) {
+                                    target.classList.replace('opacity-0', 'opacity-100');
+                                    target.classList.replace('translate-y-10', 'translate-y-0');
+                                    container.classList.add('border-green-500');
+                                } else {
+                                    target.classList.replace('opacity-100', 'opacity-0');
+                                    target.classList.replace('translate-y-0', 'translate-y-10');
+                                    container.classList.remove('border-green-500');
+                                }
                             }
                         },
                         finish() { Game.completePhase("A Libras foi reconhecida por lei apenas em 2002, o que foi essencial para garantir à comunidade surda o direito de comunicar, estudar e trabalhar plenamente."); }
@@ -520,7 +575,7 @@
             },
 
             {
-                id: 4, icon: '⛵', title: 'Navegação de 1492', desc: 'Pilote a caravela até às ilhas para conhecer os nativos.',
+                id: 4, icon: '⛵', title: 'Navegação de 1492', desc: 'Pilote a caravela até o continente para conhecer as grandes civilizações.',
                 template: () => `
                     <div class="panel-stone p-6 relative overflow-hidden h-[550px] flex flex-col">
                         <div class="flex justify-between items-center mb-4 z-10 relative bg-black/50 p-3 rounded-xl border border-amber-900/50">
@@ -553,11 +608,11 @@
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 bg-amber-900 rounded-full flex items-center justify-center text-2xl flex-shrink-0 text-white">📜</div>
                                 <div>
-                                    <p class="font-bold text-amber-950 mb-4 text-sm leading-relaxed border-b border-amber-900/20 pb-4">Atracámos nas ilhas da América Central! Quais os povos indígenas que habitam primariamente estas terras de acordo com os nossos estudos?</p>
+                                    <p class="font-bold text-amber-950 mb-4 text-sm leading-relaxed border-b border-amber-900/20 pb-4">Explorando o continente americano, nossos cronistas relataram a existência de grandes civilizações. Quais foram os três maiores povos pré-colombianos encontrados nestas terras?</p>
                                     <div class="flex flex-col gap-3">
-                                        <button onclick="F4.check(false)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">A) Tupis e Guaranis</button>
-                                        <button onclick="F4.check(true)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">B) Aruaques e Caraíbas</button>
-                                        <button onclick="F4.check(false)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">C) Maias e Incas</button>
+                                        <button onclick="F4.check(false)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">A) Tupis, Guaranis e Caraíbas</button>
+                                        <button onclick="F4.check(false)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">B) Aruaques, Caraíbas e Patagões</button>
+                                        <button onclick="F4.check(true)" class="p-3 border-2 border-stone-300 rounded-xl hover:bg-amber-200 text-left text-sm font-semibold transition-colors">C) Incas, Astecas e Maias</button>
                                     </div>
                                 </div>
                             </div>
@@ -570,6 +625,7 @@
                         moveShip(e) {
                             if(this.arrived) return;
                             const sea = document.getElementById('f4-sea');
+                            if(!sea) return;
                             const rect = sea.getBoundingClientRect();
                             const x = e.clientX - rect.left; 
                             const y = e.clientY - rect.top;
@@ -577,30 +633,40 @@
                             const yPct = (y / rect.height) * 100;
 
                             const ship = document.getElementById('f4-ship');
-                            ship.style.left = xPct + '%'; 
-                            ship.style.top = yPct + '%';
+                            if(ship && ship.style) {
+                                ship.style.left = xPct + '%'; 
+                                ship.style.top = yPct + '%';
+                            }
                             
                             // Atualiza Fog of War
                             const fog = document.getElementById('f4-fog');
-                            fog.style.maskImage = `radial-gradient(circle 200px at ${xPct}% ${yPct}%, transparent 30%, black 100%)`;
-                            fog.style.webkitMaskImage = `radial-gradient(circle 200px at ${xPct}% ${yPct}%, transparent 30%, black 100%)`;
+                            if(fog && fog.style) {
+                                fog.style.maskImage = `radial-gradient(circle 200px at ${xPct}% ${yPct}%, transparent 30%, black 100%)`;
+                                fog.style.webkitMaskImage = `radial-gradient(circle 200px at ${xPct}% ${yPct}%, transparent 30%, black 100%)`;
+                            }
                             
                             // Verifica se chegou numa ilha
                             if (yPct < 70) {
                                 this.arrived = true;
-                                Game.showToast('sucesso', 'Terra à Vista!', 'Você atracou nas ilhas caribenhas.');
+                                Game.showToast('sucesso', 'Terra à Vista!', 'Você chegou ao continente americano.');
                                 setTimeout(() => { 
-                                    document.getElementById('f4-dialog').classList.remove('hidden'); 
-                                    document.getElementById('f4-dialog').classList.add('animate-bounce');
-                                    setTimeout(() => document.getElementById('f4-dialog').classList.remove('animate-bounce'), 1000);
+                                    const dialog = document.getElementById('f4-dialog');
+                                    if(dialog) {
+                                        dialog.classList.remove('hidden'); 
+                                        dialog.classList.add('animate-bounce');
+                                        setTimeout(() => {
+                                            const d2 = document.getElementById('f4-dialog');
+                                            if(d2) d2.classList.remove('animate-bounce');
+                                        }, 1000);
+                                    }
                                 }, 1200);
                             }
                         },
                         check(correct) {
-                            if(correct) Game.completePhase("Correto! Cristóvão Colombo e sua tripulação encontraram os povos Aruaques e Caraíbas ao chegarem às ilhas da América Central em 1492.");
+                            if(correct) Game.completePhase("Correto! Incas, Astecas e Maias formaram as três maiores e mais avançadas civilizações pré-colombianas encontradas no continente americano.");
                             else {
                                 Game.shakeElement('f4-dialog');
-                                Game.showToast('erro', 'Diário Incorreto', 'Lembre-se: os tupis habitavam mais ao sul (Brasil) e Maias/Incas tinham impérios continentais.');
+                                Game.showToast('erro', 'Diário Incorreto', 'Lembre-se: procuramos as três grandes civilizações construtoras de pirâmides e vastos impérios.');
                             }
                         }
                     };
@@ -655,11 +721,18 @@
                     window.F5 = {
                         gearDone: false, cornClicks: 0, requiredClicks: 8,
                         rotateGear(val) {
-                            document.getElementById('f5-gear').style.transform = `rotate(${val * 3.6}deg)`;
+                            const gear = document.getElementById('f5-gear');
+                            if(gear && gear.style) gear.style.transform = `rotate(${val * 3.6}deg)`;
                             if (val == 100 && !this.gearDone) {
                                 this.gearDone = true;
-                                document.getElementById('f5-lock').style.opacity = '0';
-                                setTimeout(() => document.getElementById('f5-lock').classList.add('hidden'), 500);
+                                const lock = document.getElementById('f5-lock');
+                                if(lock && lock.style) {
+                                    lock.style.opacity = '0';
+                                    setTimeout(() => {
+                                        const l = document.getElementById('f5-lock');
+                                        if(l) l.classList.add('hidden');
+                                    }, 500);
+                                }
                                 Game.showToast('sucesso', 'Tempo Perfeito', 'O alinhamento solar ativou a terra.');
                             }
                         },
@@ -669,14 +742,19 @@
                         grindCorn() {
                             this.cornClicks++;
                             const pct = (this.cornClicks / this.requiredClicks) * 100;
-                            document.getElementById('f5-corn-progress').style.width = `${pct}%`;
+                            const prog = document.getElementById('f5-corn-progress');
+                            if(prog && prog.style) prog.style.width = `${pct}%`;
                             
                             const btn = document.getElementById('f5-corn-btn');
-                            btn.style.transform = 'scale(0.95)';
-                            setTimeout(() => btn.style.transform = 'scale(1)', 50);
+                            if(btn && btn.style) btn.style.transform = 'scale(0.95)';
+                            setTimeout(() => {
+                                const b = document.getElementById('f5-corn-btn');
+                                if(b && b.style) b.style.transform = 'scale(1)';
+                            }, 50);
 
                             if (this.cornClicks >= this.requiredClicks) {
-                                document.getElementById('f5-corn-icon').innerText = '🌮'; // Transforma em tortilla
+                                const icon = document.getElementById('f5-corn-icon');
+                                if(icon) icon.innerText = '🌮'; // Transforma em tortilla
                                 Game.completePhase("Além do calendário, o Milho era a base vital dos astecas, consumido como tortilla ou sopa nas oferendas e refeições.");
                             }
                         }
@@ -721,11 +799,16 @@
                         addNode(val, btn, ropeId) {
                             this.total += val;
                             const totalEl = document.getElementById('f6-total');
-                            totalEl.innerText = this.total;
+                            if(totalEl) {
+                                totalEl.innerText = this.total;
+                                totalEl.classList.add('animate-ping');
+                                setTimeout(() => {
+                                    const t = document.getElementById('f6-total');
+                                    if(t) t.classList.remove('animate-ping');
+                                }, 200);
+                            }
                             
                             btn.classList.add('opacity-30', 'scale-90', 'pointer-events-none');
-                            totalEl.classList.add('animate-ping');
-                            setTimeout(() => totalEl.classList.remove('animate-ping'), 200);
                             
                             if (this.total === 10) {
                                 setTimeout(() => Game.completePhase("O Quipu era o instrumento de contagem Inca utilizado para registar os tributos obrigatórios para toda a população."), 500);
@@ -792,12 +875,17 @@
                                 return;
                             }
                             const q = this.questions[this.stage];
-                            document.getElementById('f7-text').innerText = `"${q.q}"`;
-                            document.getElementById('f7-choices').innerHTML = q.opts.map((opt) => `
-                                <button onclick="F7.answer(${opt.c})" class="text-left p-4 bg-stone-900 hover:bg-stone-800 border border-stone-600 hover:border-amber-500 rounded-lg text-sm transition-all text-amber-100/90 shadow-md">
-                                    ${opt.t}
-                                </button>
-                            `).join('');
+                            const textEl = document.getElementById('f7-text');
+                            if(textEl) textEl.innerText = `"${q.q}"`;
+                            
+                            const choicesEl = document.getElementById('f7-choices');
+                            if(choicesEl) {
+                                choicesEl.innerHTML = q.opts.map((opt) => `
+                                    <button onclick="F7.answer(${opt.c})" class="text-left p-4 bg-stone-900 hover:bg-stone-800 border border-stone-600 hover:border-amber-500 rounded-lg text-sm transition-all text-amber-100/90 shadow-md">
+                                        ${opt.t}
+                                    </button>
+                                `).join('');
+                            }
                         },
                         answer(isCorrect) {
                             if(isCorrect) {
@@ -807,15 +895,15 @@
                             } else {
                                 this.hp -= 50;
                                 const hpBar = document.getElementById('f7-hp');
-                                hpBar.style.width = `${this.hp}%`;
+                                if(hpBar && hpBar.style) hpBar.style.width = `${this.hp}%`;
                                 Game.shakeElement('f7-container');
                                 
                                 if(this.hp <= 0) {
-                                    hpBar.classList.replace('bg-green-500', 'bg-red-600');
+                                    if(hpBar) hpBar.classList.replace('bg-green-500', 'bg-red-600');
                                     Game.showToast('erro', 'Exaustão Académica', 'Foste expulso da escola por falhar no conhecimento básico.');
                                     setTimeout(() => Game.startPhase(7), 2000);
                                 } else {
-                                    hpBar.classList.replace('bg-green-500', 'bg-orange-500');
+                                    if(hpBar) hpBar.classList.replace('bg-green-500', 'bg-orange-500');
                                     Game.showToast('erro', 'Repreensão!', 'Perdeste energia (foco). Pensa bem antes de falar.');
                                 }
                             }
@@ -862,18 +950,25 @@
                         move(e) {
                             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                            const rect = document.getElementById('f8-cave').getBoundingClientRect();
+                            const cave = document.getElementById('f8-cave');
+                            if(!cave) return;
+                            const rect = cave.getBoundingClientRect();
                             const x = ((clientX - rect.left) / rect.width) * 100;
                             const y = ((clientY - rect.top) / rect.height) * 100;
                             
                             const darkness = document.getElementById('f8-darkness');
-                            darkness.style.setProperty('--mouse-x', x + '%');
-                            darkness.style.setProperty('--mouse-y', y + '%');
+                            if(darkness && darkness.style) {
+                                darkness.style.setProperty('--mouse-x', x + '%');
+                                darkness.style.setProperty('--mouse-y', y + '%');
+                            }
                         },
                         select(correct, btn) {
                             if(correct) {
-                                document.getElementById('f8-darkness').style.clipPath = 'circle(150% at 50% 50%)'; 
-                                document.getElementById('f8-darkness').style.transition = 'clip-path 1.5s ease-out';
+                                const dark = document.getElementById('f8-darkness');
+                                if(dark && dark.style) {
+                                    dark.style.clipPath = 'circle(150% at 50% 50%)'; 
+                                    dark.style.transition = 'clip-path 1.5s ease-out';
+                                }
                                 setTimeout(() => Game.completePhase("Muito antes da escrita, a primeira forma de comunicação do ser humano envolvia sinais, gestos e as famosas pinturas rupestres."), 1000);
                             }
                             else {
@@ -924,7 +1019,7 @@
                             if(this.word.length >= 5) return;
                             
                             btn.classList.add('bg-[#c2b280]');
-                            setTimeout(() => btn.classList.remove('bg-[#c2b280]'), 150);
+                            setTimeout(() => { if(btn) btn.classList.remove('bg-[#c2b280]'); }, 150);
 
                             this.word += letter;
                             this.symbols.push(symbol);
@@ -947,10 +1042,10 @@
                         },
                         renderDisplay() {
                             const container = document.getElementById('f9-slots');
+                            if(!container) return;
                             container.innerHTML = '';
                             for(let i=0; i<5; i++) {
                                 const sym = this.symbols[i] || '';
-                                /* MODIFICADO: Cores claras ao inserir o hieróglifo (Amarelo brilhante) */
                                 container.innerHTML += `
                                     <div class="w-12 h-16 border-b-4 ${sym ? 'border-amber-400 text-amber-200' : 'border-stone-600'} flex items-center justify-center text-4xl transition-colors duration-300 drop-shadow-md">
                                         <span class="${sym ? 'animate-bounce' : ''}" style="animation-iteration-count: 1;">${sym}</span>
@@ -989,28 +1084,33 @@
                         setup() {
                             this.cards.sort(() => Math.random() - 0.5);
                             const grid = document.getElementById('f10-grid');
-                            grid.innerHTML = this.cards.map((c, i) => `
-                                <div class="card-memory w-full aspect-square relative" onclick="F10.flip(${i}, ${c.id}, this)">
-                                    <div class="card-inner w-full h-full relative">
-                                        <div class="card-face bg-[url('https://placehold.co/100x100/3d2b1f/1a120b?text=+')] border-2 border-stone-600 rounded-xl shadow-lg flex items-center justify-center bg-cover hover:border-amber-500 transition-colors">
-                                            <div class="w-8 h-8 bg-black/40 rounded-full flex items-center justify-center border border-amber-900/50 text-xs">👁️</div>
-                                        </div>
-                                        <div class="card-face card-back bg-gradient-to-br from-amber-800 to-amber-950 border-2 border-amber-400 rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.4)] flex flex-col items-center justify-center p-2 text-center text-white">
-                                            <span class="text-[10px] md:text-xs font-extrabold leading-tight drop-shadow-md">${c.val}</span>
+                            if(grid) {
+                                grid.innerHTML = this.cards.map((c, i) => `
+                                    <div class="card-memory w-full aspect-square relative" onclick="F10.flip(${i}, ${c.id}, this)">
+                                        <div class="card-inner w-full h-full relative">
+                                            <div class="card-face bg-[url('https://placehold.co/100x100/3d2b1f/1a120b?text=+')] border-2 border-stone-600 rounded-xl shadow-lg flex items-center justify-center bg-cover hover:border-amber-500 transition-colors">
+                                                <div class="w-8 h-8 bg-black/40 rounded-full flex items-center justify-center border border-amber-900/50 text-xs">👁️</div>
+                                            </div>
+                                            <div class="card-face card-back bg-gradient-to-br from-amber-800 to-amber-950 border-2 border-amber-400 rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.4)] flex flex-col items-center justify-center p-2 text-center text-white">
+                                                <span class="text-[10px] md:text-xs font-extrabold leading-tight drop-shadow-md">${c.val}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            `).join('');
+                                `).join('');
+                            }
                             
-                            this.interval = setInterval(() => {
+                            this.interval = Game.registerInterval(setInterval(() => {
+                                const timerEl = document.getElementById('f10-timer');
+                                if (!timerEl) return;
+                                
                                 this.time--;
-                                document.getElementById('f10-timer').innerText = this.time + 's';
+                                timerEl.innerText = this.time + 's';
                                 if(this.time <= 0) {
                                     clearInterval(this.interval);
                                     Game.showToast('erro', 'Tempo Esgotado', 'Reiniciando o desafio cognitivo.');
                                     setTimeout(() => Game.startPhase(10), 2000);
                                 }
-                            }, 1000);
+                            }, 1000));
                         },
                         flip(index, id, el) {
                             if(this.lock || this.flipped.length >= 2 || el.classList.contains('flipped')) return;
@@ -1084,22 +1184,28 @@
                             if(this.completed[id]) return;
                             this.currentId = id;
                             this.progress = 0;
-                            document.getElementById(`f11-word-${id}`).classList.add('animate-pulse');
+                            const wordEl = document.getElementById(`f11-word-${id}`);
+                            if(wordEl) wordEl.classList.add('animate-pulse');
                             
-                            this.holdTimer = setInterval(() => {
+                            this.holdTimer = Game.registerInterval(setInterval(() => {
+                                const bar = document.getElementById(`f11-bar-${id}`);
+                                if (!bar) return;
+                                
                                 this.progress += 5;
-                                document.getElementById(`f11-bar-${id}`).style.width = this.progress + '%';
+                                if (bar.style) bar.style.width = this.progress + '%';
                                 
                                 if (this.progress >= 100) {
                                     this.finishWord(id, realWord);
                                 }
-                            }, 50);
+                            }, 50));
                         },
                         stopHold() {
                             clearInterval(this.holdTimer);
                             if(this.currentId && !this.completed[this.currentId]) {
-                                document.getElementById(`f11-bar-${this.currentId}`).style.width = '0%';
-                                document.getElementById(`f11-word-${this.currentId}`).classList.remove('animate-pulse');
+                                const bar = document.getElementById(`f11-bar-${this.currentId}`);
+                                if(bar && bar.style) bar.style.width = '0%';
+                                const wordEl = document.getElementById(`f11-word-${this.currentId}`);
+                                if(wordEl) wordEl.classList.remove('animate-pulse');
                             }
                             this.currentId = null;
                         },
@@ -1108,10 +1214,11 @@
                             this.completed[id] = true;
                             
                             const el = document.getElementById(`f11-word-${id}`);
-                            // MODIFICADO: Remove as classes que ocultam e adiciona fundo escuro com cor branca brilhante para o texto.
-                            el.classList.remove('bg-[#5c3a21]', 'text-transparent', 'animate-pulse');
-                            el.classList.add('text-amber-100', 'bg-amber-950', 'font-bold', 'border-2', 'border-amber-400', 'shadow-[0_0_15px_#d4af37]', 'tracking-wide');
-                            el.innerText = realWord;
+                            if(el) {
+                                el.classList.remove('bg-[#5c3a21]', 'text-transparent', 'animate-pulse');
+                                el.classList.add('text-amber-100', 'bg-amber-950', 'font-bold', 'border-2', 'border-amber-400', 'shadow-[0_0_15px_#d4af37]', 'tracking-wide');
+                                el.innerText = realWord;
+                            }
                             
                             Game.showToast('sucesso', 'Palavra Revelada', 'O papiro foi limpo com sucesso.');
                             
@@ -1159,12 +1266,17 @@
                         hp: 50, offerings: 0, maxOfferings: 10, drainInterval: null,
                         setup() {
                             const offContainer = document.getElementById('f12-offerings');
-                            offContainer.innerHTML = '';
-                            for(let i=0; i<this.maxOfferings; i++) {
-                                offContainer.innerHTML += `<div class="flex-1 bg-stone-800 rounded-sm transition-colors duration-300" id="f12-off-${i}"></div>`;
+                            if(offContainer) {
+                                offContainer.innerHTML = '';
+                                for(let i=0; i<this.maxOfferings; i++) {
+                                    offContainer.innerHTML += `<div class="flex-1 bg-stone-800 rounded-sm transition-colors duration-300" id="f12-off-${i}"></div>`;
+                                }
                             }
                             
-                            this.drainInterval = setInterval(() => {
+                            this.drainInterval = Game.registerInterval(setInterval(() => {
+                                const hpBar = document.getElementById('f12-fire-hp');
+                                if (!hpBar) return;
+                                
                                 this.hp -= 2;
                                 this.updateUI();
                                 if(this.hp <= 0) {
@@ -1172,19 +1284,25 @@
                                     Game.showToast('erro', 'A Chama Apagou', 'As colheitas falharam. Seja mais rápido.');
                                     setTimeout(() => Game.startPhase(12), 2000);
                                 }
-                            }, 200);
+                            }, 200));
                         },
                         feed() {
                             this.hp = Math.min(this.hp + 15, 100);
                             this.updateUI();
                             
                             if (this.hp > 80 && this.offerings < this.maxOfferings) {
-                                document.getElementById(`f12-off-${this.offerings}`).classList.replace('bg-stone-800', 'bg-green-500');
+                                const offEl = document.getElementById(`f12-off-${this.offerings}`);
+                                if(offEl) offEl.classList.replace('bg-stone-800', 'bg-green-500');
                                 this.offerings++;
                                 
                                 const btn = document.getElementById('f12-btn');
-                                btn.classList.add('shadow-[0_0_60px_rgba(255,255,255,0.8)]');
-                                setTimeout(() => btn.classList.remove('shadow-[0_0_60px_rgba(255,255,255,0.8)]'), 200);
+                                if(btn) {
+                                    btn.classList.add('shadow-[0_0_60px_rgba(255,255,255,0.8)]');
+                                    setTimeout(() => {
+                                        const b2 = document.getElementById('f12-btn');
+                                        if(b2) b2.classList.remove('shadow-[0_0_60px_rgba(255,255,255,0.8)]');
+                                    }, 200);
+                                }
                                 
                                 if (this.offerings >= this.maxOfferings) {
                                     clearInterval(this.drainInterval);
@@ -1193,9 +1311,14 @@
                             }
                         },
                         updateUI() {
-                            document.getElementById('f12-fire-hp').style.width = this.hp + '%';
-                            const scale = 0.5 + (this.hp / 100);
-                            document.getElementById('f12-flame-visual').style.transform = `scale(${scale})`;
+                            const hpBar = document.getElementById('f12-fire-hp');
+                            if (hpBar && hpBar.style) hpBar.style.width = this.hp + '%';
+                            
+                            const flameVisual = document.getElementById('f12-flame-visual');
+                            if (flameVisual && flameVisual.style) {
+                                const scale = 0.5 + (this.hp / 100);
+                                flameVisual.style.transform = `scale(${scale})`;
+                            }
                         }
                     };
                     F12.setup();
@@ -1242,11 +1365,14 @@
                     window.F13 = {
                         dist: 0, maxDist: 100, interval: null, ended: false,
                         setup() {
-                            this.interval = setInterval(() => {
-                                if(this.ended) return;
+                            this.interval = Game.registerInterval(setInterval(() => {
+                                if(this.ended) { clearInterval(this.interval); return; }
+                                const bar = document.getElementById('f13-dist-bar');
+                                if (!bar) return;
+                                
                                 if(this.dist > 0) this.dist -= 0.5;
                                 this.updateUI();
-                            }, 100);
+                            }, 100));
                         },
                         walk() {
                             if(this.ended) return;
@@ -1254,19 +1380,29 @@
                             this.updateUI();
                             
                             const avatar = document.getElementById('f13-avatar');
-                            avatar.style.transform = `rotate(${Math.random() > 0.5 ? 15 : -15}deg)`;
-                            setTimeout(() => avatar.style.transform = 'rotate(0deg)', 50);
+                            if (avatar && avatar.style) {
+                                avatar.style.transform = `rotate(${Math.random() > 0.5 ? 15 : -15}deg)`;
+                                setTimeout(() => {
+                                    const a = document.getElementById('f13-avatar');
+                                    if(a && a.style) a.style.transform = 'rotate(0deg)';
+                                }, 50);
+                            }
 
                             if(this.dist >= this.maxDist) {
                                 this.ended = true;
                                 clearInterval(this.interval);
-                                document.getElementById('f13-ending').classList.remove('hidden');
+                                const ending = document.getElementById('f13-ending');
+                                if(ending) ending.classList.remove('hidden');
                             }
                         },
                         updateUI() {
                             const pct = Math.min((this.dist / this.maxDist) * 100, 100);
-                            document.getElementById('f13-dist-bar').style.width = pct + '%';
-                            document.getElementById('f13-avatar').style.left = `calc(${pct}% - 30px)`;
+                            
+                            const bar = document.getElementById('f13-dist-bar');
+                            if (bar && bar.style) bar.style.width = pct + '%';
+                            
+                            const avatar = document.getElementById('f13-avatar');
+                            if (avatar && avatar.style) avatar.style.left = `calc(${pct}% - 30px)`;
                         },
                         finish() {
                             Game.completePhase("Para chegar à 'cidade das nuvens', pode-se caminhar cerca de 48 km (4 dias e 3 noites). Contudo, este turismo massivo forçou o encerramento para restauros estruturais.");
@@ -1313,8 +1449,10 @@
                         selected: null,
                         completed: 0,
                         select(type, btn) {
-                            document.getElementById('f14-item-gold').classList.remove('ring-4', 'ring-amber-200', 'scale-110');
-                            document.getElementById('f14-item-silver').classList.remove('ring-4', 'ring-slate-100', 'scale-110');
+                            const g = document.getElementById('f14-item-gold');
+                            const s = document.getElementById('f14-item-silver');
+                            if(g) g.classList.remove('ring-4', 'ring-amber-200', 'scale-110');
+                            if(s) s.classList.remove('ring-4', 'ring-slate-100', 'scale-110');
                             
                             this.selected = type;
                             btn.classList.add(type === 'gold' ? 'ring-4' : 'ring-4', type === 'gold' ? 'ring-amber-200' : 'ring-slate-100', 'scale-110');
@@ -1329,12 +1467,19 @@
                                 const itemBtn = document.getElementById(`f14-item-${this.selected}`);
                                 const altarBtn = document.getElementById(`f14-altar-${altar}`);
                                 
-                                itemBtn.classList.add('opacity-0', 'scale-0');
-                                setTimeout(() => itemBtn.classList.add('hidden'), 300);
+                                if(itemBtn) {
+                                    itemBtn.classList.add('opacity-0', 'scale-0');
+                                    setTimeout(() => {
+                                        const ib = document.getElementById(`f14-item-${this.selected}`);
+                                        if(ib) ib.classList.add('hidden');
+                                    }, 300);
+                                }
                                 
-                                altarBtn.classList.replace('border-dashed', 'border-solid');
-                                altarBtn.classList.add(altar === 'sun' ? 'border-amber-400' : 'border-slate-300');
-                                altarBtn.innerHTML += `<div class="absolute bottom-2 bg-black/60 px-2 py-1 rounded text-[10px] font-bold ${altar === 'sun' ? 'text-yellow-400' : 'text-slate-200'} border border-stone-600">Consagrado</div>`;
+                                if(altarBtn) {
+                                    altarBtn.classList.replace('border-dashed', 'border-solid');
+                                    altarBtn.classList.add(altar === 'sun' ? 'border-amber-400' : 'border-slate-300');
+                                    altarBtn.innerHTML += `<div class="absolute bottom-2 bg-black/60 px-2 py-1 rounded text-[10px] font-bold ${altar === 'sun' ? 'text-yellow-400' : 'text-slate-200'} border border-stone-600">Consagrado</div>`;
+                                }
                                 
                                 this.selected = null;
                                 this.completed++;
@@ -1432,12 +1577,12 @@
                                 ]
                             },
                             {
-                                // Adaptado da Q6 (Colombo)
-                                q: "Quando o navegador Cristóvão Colombo atracou no continente americano (América Central) em 1492, ele encontrou populações nativas específicas. Quais foram os principais povos encontrados nas ilhas?",
+                                // Adaptado da Q6 (Colombo / Povos Encontrados) - ATUALIZADO AQUI
+                                q: "Quando os europeus exploraram o continente americano, depararam-se com civilizações complexas que possuíam conhecimentos avançados de astronomia, arquitetura monumental e agricultura. Quais foram os três maiores povos pré-colombianos encontrados nestas terras?",
                                 opts: [
-                                    { t: "Tupis e Guaranis, que dominavam a costa brasileira.", c: false },
-                                    { t: "Os pacíficos Aruaques e os temidos guerreiros Caraíbas.", c: true },
-                                    { t: "Maias e Astecas, que possuíam impérios naquelas ilhas.", c: false }
+                                    { t: "Tupis, Guaranis e Caraíbas, que dominavam a costa sul-americana.", c: false },
+                                    { t: "Incas, Astecas e Maias, conhecidos por seus vastos impérios e construções grandiosas.", c: true },
+                                    { t: "Aruaques, Caraíbas e Patagões, que viviam exclusivamente de caça e coleta.", c: false }
                                 ]
                             },
                             {
@@ -1479,31 +1624,43 @@
                             const q = this.questions[this.stage];
                             const pct = ((this.stage + 1) / this.questions.length) * 100;
                             
-                            document.getElementById('f15-progress-text').innerText = `Questão ${this.stage + 1} de ${this.questions.length}`;
-                            document.getElementById('f15-bar').style.width = `${pct}%`;
+                            const progressText = document.getElementById('f15-progress-text');
+                            if(progressText) progressText.innerText = `Questão ${this.stage + 1} de ${this.questions.length}`;
+                            
+                            const bar = document.getElementById('f15-bar');
+                            if(bar && bar.style) bar.style.width = `${pct}%`;
                             
                             // Efeito visual de troca
                             const card = document.getElementById('f15-card');
-                            card.classList.remove('animate-fade-in-up');
-                            void card.offsetWidth;
-                            card.classList.add('animate-fade-in-up');
+                            if(card) {
+                                card.classList.remove('animate-fade-in-up');
+                                void card.offsetWidth;
+                                card.classList.add('animate-fade-in-up');
+                            }
 
-                            document.getElementById('f15-q-text').innerText = q.q;
+                            const qText = document.getElementById('f15-q-text');
+                            if(qText) qText.innerText = q.q;
                             
                             // Embaralha as opções
                             const shuffledOpts = [...q.opts].sort(() => Math.random() - 0.5);
                             
-                            document.getElementById('f15-options').innerHTML = shuffledOpts.map((opt, index) => `
-                                <button onclick="F15.answer(${opt.c}, this)" class="text-left w-full p-4 bg-stone-900/80 hover:bg-amber-900/40 border-2 border-stone-700 hover:border-amber-500 rounded-xl text-sm transition-all text-amber-50 shadow-md">
-                                    ${opt.t}
-                                </button>
-                            `).join('');
+                            const optionsContainer = document.getElementById('f15-options');
+                            if(optionsContainer) {
+                                optionsContainer.innerHTML = shuffledOpts.map((opt, index) => `
+                                    <button onclick="F15.answer(${opt.c}, this)" class="text-left w-full p-4 bg-stone-900/80 hover:bg-amber-900/40 border-2 border-stone-700 hover:border-amber-500 rounded-xl text-sm transition-all text-amber-50 shadow-md">
+                                        ${opt.t}
+                                    </button>
+                                `).join('');
+                            }
                         },
                         
                         answer(isCorrect, btn) {
                             // Bloqueia múltiplos cliques
-                            const buttons = document.getElementById('f15-options').querySelectorAll('button');
-                            buttons.forEach(b => b.style.pointerEvents = 'none');
+                            const optionsContainer = document.getElementById('f15-options');
+                            if(optionsContainer) {
+                                const buttons = optionsContainer.querySelectorAll('button');
+                                buttons.forEach(b => b.style.pointerEvents = 'none');
+                            }
 
                             if(isCorrect) {
                                 btn.classList.replace('border-stone-700', 'border-green-500');
@@ -1529,11 +1686,14 @@
                                     Game.showToast('erro', 'Resposta Incorreta!', 'Os deuses exigem mais sabedoria. Você perdeu uma vida.');
                                     // Deixa tentar de novo
                                     setTimeout(() => {
-                                        buttons.forEach(b => {
-                                            b.style.pointerEvents = 'auto';
-                                            b.classList.remove('border-red-600', 'bg-red-900/60');
-                                            b.classList.add('border-stone-700', 'bg-stone-900/80');
-                                        });
+                                        if(optionsContainer) {
+                                            const buttons = optionsContainer.querySelectorAll('button');
+                                            buttons.forEach(b => {
+                                                b.style.pointerEvents = 'auto';
+                                                b.classList.remove('border-red-600', 'bg-red-900/60');
+                                                b.classList.add('border-stone-700', 'bg-stone-900/80');
+                                            });
+                                        }
                                     }, 1500);
                                 }
                             }
@@ -1544,7 +1704,8 @@
                             for(let i=0; i<3; i++) {
                                 heartsHTML += `<span>${i < this.lives ? '❤️' : '🖤'}</span>`;
                             }
-                            document.getElementById('f15-hearts').innerHTML = heartsHTML;
+                            const heartsContainer = document.getElementById('f15-hearts');
+                            if(heartsContainer) heartsContainer.innerHTML = heartsHTML;
                         }
                     };
                     F15.renderQ();
